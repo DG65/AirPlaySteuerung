@@ -1,0 +1,137 @@
+<?php
+/**
+ * Prüfstand AirPlay-Steuerung (ohne Symcon).
+ *   php .tools/test-airplay.php                 Offline-Prüfungen
+ *   php .tools/test-airplay.php --live <IP>     zusätzlich Kopplung + Gong am echten Gerät (hörbar!)
+ *   php .tools/test-airplay.php --koppeln <IP>  zusätzlich nur Kopplung am echten Gerät (ohne Ton)
+ */
+declare(strict_types=1);
+
+$basis = dirname(__DIR__);
+require_once $basis . '/libs/AirPlaySitzung.php';
+require_once $basis . '/libs/AirPlayAudio.php';
+require_once $basis . '/libs/AirPlayGeraete.php';
+
+$fehler = 0;
+$anzahl = 0;
+function pruefe(string $name, bool $ok, string $info = ''): void
+{
+    global $fehler, $anzahl;
+    $anzahl++;
+    if (!$ok) {
+        $fehler++;
+    }
+    echo ($ok ? '  ok    ' : '  FEHLER ') . $name . ($info !== '' ? ' — ' . $info : '') . "\n";
+}
+
+echo "SRP gegen srptools\n";
+foreach (json_decode((string)file_get_contents(__DIR__ . '/fixture-srp.json'), true) as $i => $f) {
+    $srp = new AirPlaySrp('Pair-Setup', '3939', hex2bin($f['a']));
+    $srp->verarbeiten(hex2bin($f['salz']), hex2bin($f['b']));
+    pruefe("Fall $i", bin2hex($srp->oeffentlichA) === $f['A'] && bin2hex($srp->k) === $f['K'] && bin2hex($srp->m) === $f['M']);
+}
+
+echo "Binär-Plist\n";
+$py = base64_decode(json_decode((string)file_get_contents(__DIR__ . '/fixture-bplist.json'), true)['bplist']);
+$d = AirPlayBplist::decode($py);
+pruefe('plistlib lesen', $d['streams'][0]['name'] === 'Küche' && $d['streams'][0]['shk']->bytes === implode('', array_map('chr', range(0, 31)))
+    && $d['streams'][0]['streamConnectionID'] === 4000000000 && $d['streams'][0]['isMedia'] === true && $d['eventPort'] === 51234
+    && count($d['liste']) === 20 && abs($d['streams'][0]['x'] - 1.5) < 1e-9);
+$r = AirPlayBplist::decode(AirPlayBplist::encode($d));
+pruefe('eigenes Schreiben und Lesen', json_encode($r['streams'][0]['shk']) === json_encode($d['streams'][0]['shk']) && $r['liste'] === $d['liste'] && $r['streams'][0]['name'] === 'Küche');
+
+echo "TLV8\n";
+$lang = random_bytes(600);
+$t = AirPlayTlv8::decode(AirPlayTlv8::encode([[0x03, $lang], [0x06, "\x03"], [0x04, '']]));
+pruefe('über 255 Bytes geteilt und zusammengesetzt', $t[0x03] === $lang && $t[0x06] === "\x03" && $t[0x04] === '');
+
+echo "ChaCha20 / HKDF\n";
+$s = random_bytes(32);
+$c1 = new AirPlayChaCha($s, $s);
+$c2 = new AirPlayChaCha($s, $s);
+pruefe('Ver- und Entschlüsseln mit Zähler', $c2->decrypt($c1->encrypt('eins', 'x'), 'x') === 'eins' && $c2->decrypt($c1->encrypt('zwei'), '') === 'zwei');
+pruefe('HKDF-Länge', strlen(AirPlayHkdf::sha512('Control-Salt', 'Control-Write-Encryption-Key', random_bytes(64))) === 32);
+
+echo "Geräteerkennung (TXT wie im Netz gesehen, Kennungen ersetzt)\n";
+$faelle = [
+    'HomePod 1. Gen.' => [['model=AudioAccessory1,1', 'features=0x4A7FCA00,0x3C356BD0', 'flags=0x98404', 'acl=0', 'deviceid=AA:00:00:00:00:01', 'osvers=27.2.1'], 'homepod', 'ja'],
+    'HomePod mini' => [['model=AudioAccessory5,1', 'features=0x4A7FCA00,0x3C354BD0', 'flags=0x98404', 'acl=0'], 'homepod', 'ja'],
+    'LG-Fernseher' => [['model=OLED77C9PLA', 'manufacturer=LG Electronics', 'features=0x7F8AD0,0x38BCB46', 'flags=0x644', 'acl=0'], 'fremd', 'nein'],
+    'Apple TV 3' => [['model=AppleTV3,1', 'features=0x5A7FFFF7,0xE', 'flags=0x44'], 'appletv_alt', 'nein'],
+    'Marantz' => [['model=Marantz', 'features=0x445F8A00,0x801C340', 'flags=0x404'], 'fremd', 'ungeprueft'],
+    'Apple TV 4K' => [['model=AppleTV11,1', 'features=0x4A7FDFD5,0x3C155FDE', 'flags=0x18644'], 'appletv', 'nein'],
+    'nur Zuhause' => [['model=AudioAccessory6,1', 'features=0x4A7FCA00,0x3C356BD0', 'flags=0x98404', 'acl=1'], 'homepod', 'nein'],
+];
+foreach ($faelle as $name => [$txt, $familie, $durchsage]) {
+    $e = AirPlayGeraete::einordnen(AirPlayGeraete::txt($txt));
+    pruefe($name, $e['familie'] === $familie && $e['durchsage'] === $durchsage, $e['familie'] . '/' . $e['durchsage'] . ($e['grund'] ? ' (' . $e['grund'] . ')' : ''));
+}
+
+echo "Audio\n";
+function wav(int $rate, int $kanaele, int $bits, string $daten): string
+{
+    $fmt = pack('vvVVvv', 1, $kanaele, $rate, $rate * $kanaele * $bits / 8, $kanaele * $bits / 8, $bits);
+    return 'RIFF' . pack('V', 4 + 8 + 16 + 8 + strlen($daten)) . 'WAVE' . 'fmt ' . pack('V', 16) . $fmt . 'data' . pack('V', strlen($daten)) . $daten;
+}
+$stereo = wav(44100, 2, 16, pack('v*', 0x0102, 0xFFFE, 1000, 2000));
+$p = AirPlayAudio::wavZuPcm($stereo);
+pruefe('44,1 kHz Stereo → Big Endian unverändert', $p['pcm'] === pack('n*', 0x0102, 0xFFFE, 1000, 2000));
+$mono = wav(16000, 1, 16, str_repeat(pack('v', 1234), 16000));
+$p = AirPlayAudio::wavZuPcm($mono);
+pruefe('16 kHz Mono → 44,1 kHz Stereo', strlen($p['pcm']) === 44100 * 4 && substr($p['pcm'], 0, 4) === pack('nn', 1234, 1234), sprintf('%d Bytes', strlen($p['pcm'])));
+$acht = wav(22050, 1, 8, str_repeat(chr(128 + 64), 100));
+$p = AirPlayAudio::wavZuPcm($acht);
+pruefe('8 Bit Mono', substr($p['pcm'], 0, 4) === pack('nn', 64 << 8, 64 << 8));
+pruefe('MP3 erkannt', AirPlayAudio::format("ID3\x04\0\0") === 'mp3' && AirPlayAudio::format("\xFF\xFB\x90") === 'mp3');
+try {
+    AirPlayAudio::wavZuPcm('kein wav');
+    pruefe('Nicht-WAV abgelehnt', false);
+} catch (AirPlayFehler $e) {
+    pruefe('Nicht-WAV abgelehnt', $e->vorlage === 'not a WAV file');
+}
+$g = AirPlayAudio::gong();
+pruefe('Gong 1,2 s', strlen($g) === (int)(1.2 * 44100) * 4);
+pruefe('Lautstärke in dB', AirPlayAudioStrom::lautstaerkeDb(30) === -21.0 && AirPlayAudioStrom::lautstaerkeDb(0) === -144.0 && AirPlayAudioStrom::lautstaerkeDb(100) === 0.0);
+
+echo "Store-Regeln (statisch)\n";
+$lib = json_decode((string)file_get_contents($basis . '/library.json'), true);
+$felder = array_keys($lib);
+sort($felder);
+pruefe('library.json genau 8 Felder', $felder === ['author', 'build', 'compatibility', 'date', 'id', 'name', 'url', 'version'] && isset($lib['compatibility']['version']));
+foreach (['AirPlayGeraet', 'AirPlayKonfigurator'] as $m) {
+    $code = (string)file_get_contents("$basis/$m/module.php");
+    pruefe("$m: kein IPS_LogMessage", !str_contains($code, 'IPS_LogMessage'));
+    pruefe("$m: kein IPS_SetProperty/ApplyChanges", !preg_match('/IPS_SetProperty|IPS_ApplyChanges/', $code));
+    pruefe("$m: locale.json = libs/locale.json", file_get_contents("$basis/$m/locale.json") === file_get_contents("$basis/libs/locale.json"));
+    $mj = json_decode((string)file_get_contents("$basis/$m/module.json"), true);
+    pruefe("$m: vendor Apple, Präfix gesetzt", $mj['vendor'] === 'Apple' && in_array($mj['prefix'], ['AIRP', 'AIRPC'], true));
+}
+exec('php ' . escapeshellarg(__DIR__ . '/texte-sammeln.php'), $aus, $rc);
+pruefe('alle Texte in locale.json', $rc === 0, implode(' ', $aus));
+
+// ------------------------------------------------------------------ live
+$i = array_search('--live', $argv, true);
+$k = array_search('--koppeln', $argv, true);
+if ($i !== false || $k !== false) {
+    $host = $argv[($i !== false ? $i : $k) + 1] ?? '';
+    echo "Live gegen $host\n";
+    $sitzung = new AirPlaySitzung($host, fn (string $t) => print("        · $t\n"));
+    try {
+        $info = $sitzung->info();
+        $sitzung->koppeln();
+        $info2 = $sitzung->info();
+        pruefe('Kopplung und verschlüsseltes /info', ($info2['name'] ?? '') !== '' && ($info2['name'] ?? '') === ($info['name'] ?? ''), (string)($info2['name'] ?? ''));
+        if ($i !== false) {
+            $sitzung->audioEinrichten();
+            $r = $sitzung->abspielen(AirPlayAudio::gong(), 25.0);
+            pruefe('Gong gestreamt', $r['verspaetet'] < 10, sprintf('%d Pakete, %.2f s, %d verspätet', $r['pakete'], $r['dauer'], $r['verspaetet']));
+        }
+    } catch (Throwable $e) {
+        pruefe('Live', false, $e->getMessage());
+    } finally {
+        $sitzung->schliessen();
+    }
+}
+
+echo "\n$anzahl Prüfungen, $fehler Fehler\n";
+exit($fehler === 0 ? 0 : 1);

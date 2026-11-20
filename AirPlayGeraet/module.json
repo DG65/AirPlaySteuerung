@@ -1,0 +1,14 @@
+{
+  "id": "{2BB8B63A-9A5A-4704-8230-C18259F9F3E7}",
+  "name": "AirPlayGeraet",
+  "type": 3,
+  "vendor": "Apple",
+  "aliases": [
+    "AirPlay-Gerät"
+  ],
+  "url": "https://github.com/DG65/AirPlaySteuerung",
+  "parentRequirements": [],
+  "childRequirements": [],
+  "implemented": [],
+  "prefix": "AIRP"
+}

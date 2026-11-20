@@ -1,0 +1,12 @@
+{
+  "id": "{F4937700-A1EF-41E6-B9B4-9F375903FB30}",
+  "author": "DG65",
+  "name": "AirPlay-Steuerung",
+  "url": "https://github.com/DG65/AirPlaySteuerung",
+  "compatibility": {
+    "version": "9.0"
+  },
+  "version": "0.1.0",
+  "build": 1,
+  "date": 1795206850
+}

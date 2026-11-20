@@ -1,0 +1,14 @@
+{
+  "id": "{B3546B70-328B-4640-B8D2-90C2F2D52DDB}",
+  "name": "AirPlayKonfigurator",
+  "type": 4,
+  "vendor": "Apple",
+  "aliases": [
+    "AirPlay-Konfigurator"
+  ],
+  "url": "https://github.com/DG65/AirPlaySteuerung",
+  "parentRequirements": [],
+  "childRequirements": [],
+  "implemented": [],
+  "prefix": "AIRPC"
+}

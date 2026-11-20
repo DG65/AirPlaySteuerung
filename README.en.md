@@ -1,0 +1,88 @@
+# AirPlay-Steuerung
+
+Announcements on your HomePod — straight from Symcon, in pure PHP. No Home Assistant, no Python,
+no Docker, no additional software on the Symcon host.
+
+[Deutsche Version](README.md)
+
+> **Status: beta 0.1.0.** Announcements on HomePod (1st generation) and HomePod mini have been tested
+> on real hardware. Remote control and now-playing information (play/pause, title, artwork) will follow
+> in a later version.
+
+## Features
+
+- **Announcements:** a WAV file from a Symcon media object (or as raw bytes, e.g. from a TTS module) is
+  streamed to a HomePod via AirPlay 2, with a configurable announcement volume.
+- **Chime:** a two-tone chime for testing or as a lead-in, no audio file needed.
+- **AirPlay configurator:** finds HomePods, Apple TVs and other AirPlay receivers on the network. The
+  column "Announcement" shows which devices can play announcements. Devices that require pairing with a
+  PIN (e.g. many TVs) are listed but cannot be created.
+
+## Requirements
+
+- Symcon 9.0 or later
+- PHP extensions `gmp` and `sodium` (included in current Symcon versions; if one is missing, the
+  instance shows it in its form and status)
+- Device and Symcon on the same network segment (mDNS for the search); the device must be reachable
+  from Symcon on TCP port 7000, and Symcon opens UDP ports for the duration of an announcement
+
+## Setup
+
+1. Module control → add library: `https://github.com/DG65/AirPlaySteuerung`
+2. Create an **AirPlay configurator** instance, check the list, click "Create" for the HomePod.
+3. In the **AirPlay device**, click "🔗 Test connection (no sound)", then "🔔 Play chime".
+
+## Scripting
+
+```php
+// Announcement from a media object (type sound, WAV) at the configured volume
+AIRP_AnnounceMedia(12345 /* AirPlay device */, 23456 /* media object */);
+
+// with an explicit volume (0–100 %, -1 = instance setting)
+AIRP_AnnounceMediaEx(12345, 23456, 40);
+
+// WAV bytes directly, e.g. from a TTS module
+AIRP_AnnounceWave(12345, $wavBytes);
+
+AIRP_PlayChime(12345);        // chime
+AIRP_TestConnection(12345);   // pair only, no sound
+```
+
+All functions return `true` or `false`; the result is also shown in the panel "Announcements". The call
+returns once the announcement has finished (duration plus about 1.5 s).
+
+**Audio format:** WAV (PCM), any sample rate, mono or stereo, 8/16/24/32 bit, at most 120 seconds. The
+module converts it to 44.1 kHz stereo itself. MP3/AAC are not supported yet.
+
+## Limitations of this version
+
+- An announcement interrupts whatever the HomePod is playing. Music does **not** resume afterwards, and
+  the volume stays at the announcement level. Both need the remote control channel (MRP), which will
+  come in a later version.
+- AirPlay 2 receivers from other manufacturers (e.g. AV receivers) are shown as "⚠️ untested": they
+  offer the required pairing, but nobody has tried them yet. Feedback is welcome.
+- Stereo pairs and groups of several HomePods have not been tested yet.
+
+## How it works
+
+The module speaks AirPlay 2 itself: pairing without PIN entry (SRP-6a, 3072 bit), an encrypted RTSP
+session (ChaCha20-Poly1305) and the audio stream as raw PCM in real time. Connections exist only during
+an announcement. The protocol flow is reimplemented in PHP after the open library
+[pyatv](https://github.com/postlund/pyatv) (MIT), see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+## Related modules
+
+For **Apple TV control**, the Symcon store offers the module **"AppleTV" by KaiS**
+([forum](https://community.symcon.de/t/52341)). It connects pyatv through the pyatv-mqtt-bridge and is a
+good choice if an MQTT server and Docker/Python are running anyway. AirPlay-Steuerung takes a different
+route: everything in PHP inside Symcon, with HomePod announcements at its core.
+
+Siri control of Symcon devices still runs through Symcon's HomeKit bridge; the HomePod mini as a Thread
+border router for Matter does not need this module.
+
+## License
+
+PolyForm Noncommercial 1.0.0 — free for private and non-commercial use, see [LICENSE](LICENSE).
+
+AirPlay, HomePod and Apple TV are trademarks of Apple Inc. This module is not affiliated with or
+endorsed by Apple.
