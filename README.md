@@ -5,7 +5,7 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
 
 [English version](README.en.md)
 
-> **Status: Beta 0.3.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
+> **Status: Beta 0.4.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
 > (1. Generation) und HomePod mini geprüft. Apple TV mit tvOS ist nach derselben Vorlage gebaut, aber
 > noch nicht an echter Hardware getestet.
 
@@ -22,6 +22,9 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
 - **Apple Music starten:** Teilen-Link einer Playlist oder eines Albums einfügen — der HomePod spielt
   die Titel über sein eigenes Apple-Music-Konto, auf Wunsch zufällig.
 - **Gong:** Zweiklang zum Testen oder als Ankündigung, ganz ohne Audiodatei.
+- **AirPlay-Klima:** Temperatur und Luftfeuchte von HomePod mini und HomePod (2. Generation) als echte
+  Variablen — über eine Apple-Home-Automation, die Symcon über die HomeKit-Brücke im eingestellten Abstand
+  anstößt (Anleitung im Formular, Abschnitt unten).
 - **AirPlay-Konfigurator:** Findet HomePods, Apple TVs und andere AirPlay-Empfänger im Netz und zeigt
   in der Spalte „Durchsage", welche Geräte Durchsagen abspielen können. Geräte, die eine PIN-Kopplung
   verlangen (z. B. viele Fernseher), werden angezeigt, aber nicht zum Anlegen angeboten.
@@ -76,6 +79,23 @@ Eine Durchsage kehrt erst zurück, wenn sie fertig ist (Dauer + etwa 1,5 s, mit 
 
 **Audioformat:** WAV (PCM), beliebige Abtastrate, Mono oder Stereo, 8/16/24/32 Bit, höchstens
 120 Sekunden. Das Modul rechnet selbst auf 44,1 kHz Stereo um. MP3/AAC werden noch nicht unterstützt.
+
+## Temperatur und Luftfeuchte (AirPlay-Klima)
+
+Apple gibt die Sensorwerte der HomePods nicht über das Netzwerk heraus. Der Weg führt deshalb über Apple Home:
+
+1. Instanz **AirPlay-Klima** anlegen. Sie hat eine Variable „Messung anstoßen", die sie im eingestellten
+   Abstand (Standard 10 min) kurz einschaltet.
+2. In der Instanz **HomeKit Bridge** von Symcon ein Zubehör vom Typ „Switch" mit dieser Variable anlegen.
+3. In der Home-App: Automation → „Ein Gerät wird gesteuert" → der Schalter → „Wird eingeschaltet" →
+   „In Kurzbefehl umwandeln". Darin je HomePod „Status abrufen" (Temperatur, Luftfeuchtigkeit) und
+   „Inhalte von URL abrufen" (POST, JSON: `name`, `temperature`, `humidity`) mit der URL aus dem Formular.
+4. Beim ersten Empfang legt die Instanz je HomePod „<Name> Temperatur" und „<Name> Luftfeuchte" an.
+
+Die URL enthält einen geheimen Schlüssel. Die Automation braucht eine Steuerzentrale (HomePod oder Apple TV).
+Nach iOS-Updates laufen Home-Automationen erfahrungsgemäß manchmal nicht mehr an; dann hilft
+Aus- und Wiedereinschalten. Die Idee stammt aus [homepod-ha-sensors](https://github.com/vdamboeck/homepod-ha-sensors)
+für Home Assistant.
 
 ## Grenzen dieser Version
 

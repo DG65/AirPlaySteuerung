@@ -11,6 +11,7 @@ $basis = dirname(__DIR__);
 require_once $basis . '/libs/AirPlayAblauf.php';
 require_once $basis . '/libs/AirPlayAudio.php';
 require_once $basis . '/libs/AirPlayGeraete.php';
+require_once $basis . '/libs/AirPlayKlimaDaten.php';
 
 $fehler = 0;
 $anzahl = 0;
@@ -109,6 +110,21 @@ $mrp = new AirPlayMrp();
 $mrp->verarbeiten($f(1, 'varint', AirPlayMrp::SEND_COMMAND_RESULT) . $f(2, 'string', 'X1') . $f(7, 'msg', $f(1, 'varint', 0) . $f(2, 'varint', 404)));
 pruefe('Befehlsergebnis gelesen', $mrp->befehlsErgebnis('X1') === ['sendError' => 0, 'status' => 404] && $mrp->befehlsErgebnis('X2') === null);
 
+echo "Klima-Empfang\n";
+$k = AirPlayKlimaDaten::lesen('{"name": "Schlafzimmer", "temperature": "21,5 °C", "humidity": "44 %"}');
+pruefe('Kurzbefehl-JSON mit Einheiten und Komma', $k === [['name' => 'Schlafzimmer', 'temperatur' => 21.5, 'feuchte' => 44.0]]);
+$k = AirPlayKlimaDaten::lesen('[{"Name":"Küche","Temperatur":22.25},{"raum":"Bad","feuchte":"61"},{"name":"leer"}]');
+pruefe('Liste, deutsche Schlüssel, nur ein Wert, leere Einträge übersprungen', count($k) === 2 && $k[0]['temperatur'] === 22.25 && $k[0]['feuchte'] === null && $k[1]['feuchte'] === 61.0);
+$k = AirPlayKlimaDaten::lesen('{"name":"X","temperature":"-5.5","humidity":"150"}');
+pruefe('Minusgrade gelten, unplausible Feuchte verworfen', $k[0]['temperatur'] === -5.5 && $k[0]['feuchte'] === null);
+try {
+    AirPlayKlimaDaten::lesen('kein json');
+    pruefe('Kein JSON abgelehnt', false);
+} catch (AirPlayFehler $e) {
+    pruefe('Kein JSON abgelehnt', $e->vorlage === 'the request does not contain JSON');
+}
+pruefe('Kennung aus Namen (Umlaute, Leerzeichen)', AirPlayKlimaDaten::kennung('Küche oben') === 'Kuecheoben' && AirPlayKlimaDaten::kennung('!!!') !== '');
+
 echo "Geräteerkennung (TXT wie im Netz gesehen, Kennungen ersetzt)\n";
 $faelle = [
     'HomePod 1. Gen.' => [['model=AudioAccessory1,1', 'features=0x4A7FCA00,0x3C356BD0', 'flags=0x98404', 'acl=0', 'deviceid=AA:00:00:00:00:01', 'osvers=27.2.1'], 'homepod', 'ja'],
@@ -155,13 +171,13 @@ $lib = json_decode((string)file_get_contents($basis . '/library.json'), true);
 $felder = array_keys($lib);
 sort($felder);
 pruefe('library.json genau 8 Felder', $felder === ['author', 'build', 'compatibility', 'date', 'id', 'name', 'url', 'version'] && isset($lib['compatibility']['version']));
-foreach (['AirPlayGeraet', 'AirPlayKonfigurator'] as $m) {
+foreach (['AirPlayGeraet', 'AirPlayKonfigurator', 'AirPlayKlima'] as $m) {
     $code = (string)file_get_contents("$basis/$m/module.php");
     pruefe("$m: kein IPS_LogMessage", !str_contains($code, 'IPS_LogMessage'));
-    pruefe("$m: kein IPS_SetProperty/ApplyChanges", !preg_match('/IPS_SetProperty|IPS_ApplyChanges/', $code));
+    pruefe("$m: keine Selbstpersistenz (IPS_SetProperty/ApplyChanges auf die eigene Instanz)", !preg_match('/IPS_(SetProperty|ApplyChanges)\(\$this->InstanceID/', $code));
     pruefe("$m: locale.json = libs/locale.json", file_get_contents("$basis/$m/locale.json") === file_get_contents("$basis/libs/locale.json"));
     $mj = json_decode((string)file_get_contents("$basis/$m/module.json"), true);
-    pruefe("$m: vendor Apple, Präfix gesetzt", $mj['vendor'] === 'Apple' && in_array($mj['prefix'], ['AIRP', 'AIRPC'], true));
+    pruefe("$m: vendor Apple, Präfix gesetzt", $mj['vendor'] === 'Apple' && in_array($mj['prefix'], ['AIRP', 'AIRPC', 'AIRPK'], true));
 }
 exec('php ' . escapeshellarg(__DIR__ . '/texte-sammeln.php'), $aus, $rc);
 pruefe('alle Texte in locale.json', $rc === 0, implode(' ', $aus));

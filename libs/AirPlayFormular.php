@@ -32,6 +32,9 @@ trait AirPlayFormular
             '• 🎵 New: start Apple Music on the HomePod — paste the share link of a playlist or album, optionally shuffled (AIRP_PlayPlaylist).',
             '• The app name now shows "Apple Music" instead of the internal name "AirMusic".',
         ],
+        '0.4.0' => [
+            '• 🌡️ New module "AirPlay-Klima": temperature and humidity of HomePod mini / HomePod (2nd generation) as real variables — via an Apple Home automation, triggered by the HomeKit bridge of Symcon. Step-by-step guide in the form.',
+        ],
     ];
 
     private static $AIRPLAY_REPO_URL     = 'https://github.com/DG65/AirPlaySteuerung';

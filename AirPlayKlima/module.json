@@ -1,0 +1,14 @@
+{
+  "id": "{EC8A60AD-33DB-41D6-B7B1-0C5363E5DC3A}",
+  "name": "AirPlayKlima",
+  "type": 3,
+  "vendor": "Apple",
+  "aliases": [
+    "AirPlay-Klima"
+  ],
+  "url": "https://github.com/DG65/AirPlaySteuerung",
+  "parentRequirements": [],
+  "childRequirements": [],
+  "implemented": [],
+  "prefix": "AIRPK"
+}

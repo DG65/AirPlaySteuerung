@@ -5,7 +5,7 @@ no Docker, no additional software on the Symcon host.
 
 [Deutsche Version](README.md)
 
-> **Status: beta 0.3.0.** Announcements, resuming afterwards, display and control have been tested on
+> **Status: beta 0.4.0.** Announcements, resuming afterwards, display and control have been tested on
 > HomePod (1st generation) and HomePod mini. Apple TV with tvOS follows the same reference, but has not
 > been tested on real hardware yet.
 
@@ -22,6 +22,9 @@ no Docker, no additional software on the Symcon host.
 - **Start Apple Music:** paste the share link of a playlist or album — the HomePod plays the songs from
   its own Apple Music account, optionally shuffled.
 - **Chime:** a two-tone chime for testing or as a lead-in, no audio file needed.
+- **AirPlay-Klima:** temperature and humidity of HomePod mini and HomePod (2nd generation) as real
+  variables — through an Apple Home automation that Symcon triggers via its HomeKit bridge at a set interval
+  (guide in the form and below).
 - **AirPlay configurator:** finds HomePods, Apple TVs and other AirPlay receivers on the network. The
   column "Announcement" shows which devices can play announcements. Devices that require pairing with a
   PIN (e.g. many TVs) are listed but cannot be created.
@@ -74,6 +77,22 @@ returns once it has finished (duration plus about 1.5 s, with resume plus about 
 
 **Audio format:** WAV (PCM), any sample rate, mono or stereo, 8/16/24/32 bit, at most 120 seconds. The
 module converts it to 44.1 kHz stereo itself. MP3/AAC are not supported yet.
+
+## Temperature and humidity (AirPlay-Klima)
+
+Apple does not hand out the HomePod sensor values over the network, so the route goes through Apple Home:
+
+1. Create an **AirPlay-Klima** instance. Its variable "Trigger measurement" is switched on briefly at the set
+   interval (default 10 min).
+2. In Symcon's **HomeKit Bridge** instance, add an accessory of type "Switch" with this variable.
+3. In the Home app: Automation → "An Accessory is Controlled" → the switch → "Turns On" → "Convert to
+   Shortcut". In it, for each HomePod, "Get the state of" (temperature, humidity) and "Get Contents of URL"
+   (POST, JSON: `name`, `temperature`, `humidity`) with the URL from the form.
+4. On the first reception, the instance creates "<name> temperature" and "<name> humidity" per HomePod.
+
+The URL contains a secret key. The automation needs a home hub (HomePod or Apple TV). After iOS updates,
+Home automations sometimes stop running; switching them off and on again helps. The idea comes from
+[homepod-ha-sensors](https://github.com/vdamboeck/homepod-ha-sensors) for Home Assistant.
 
 ## Limitations of this version
 

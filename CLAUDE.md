@@ -65,6 +65,15 @@
 - Song-IDs: music.apple.com, script#serialized-server-data, contentDescriptor.kind = song → identifiers.storeAdamID.
 - Der HomePod nennt seine Musik-App intern „AirMusic" (Bundle com.apple.Music) → Anzeige über APP_NAMEN.
 
+## AirPlay-Klima (Stufe 3, 20.11.2026)
+
+- Modul `AirPlayKlima` (AIRPK, `{EC8A60AD-33DB-41D6-B7B1-0C5363E5DC3A}`), Lib `AirPlayKlimaDaten` (JSON lesen, Zahlen mit
+  Einheit/Komma, Kennung aus Name). Auslöse-Variable „Trigger" (Bool, Aktion) → paresys HomeKit-Bridge (Zubehör Switch)
+  → Home-Automation „Gerät wird gesteuert/eingeschaltet" → Kurzbefehl „Status abrufen" + „Inhalte von URL abrufen"
+  POST an `/hook/airplayklima<ID>?key=…`. WebHook-Eintrag wie RoboHub (WebHook-Control-Property `Hooks`).
+- Vorbild: vdamboeck/homepod-ha-sensors (Home Assistant). Alternativen bewertet: Thermostat-Zieltemperatur über die
+  Brücke (10–38 °C, 0,1) wäre möglich, für Feuchte gibt es kein beschreibbares Merkmal → WebHook.
+
 ## Geräteerkennung (`libs/AirPlayGeraete.php`)
 
 - Aus TXT von `_airplay._tcp`: flags 0x8/0x200 → PIN nötig (LG OLED C9: 0x644), acl=1, act=2, pw/0x80,

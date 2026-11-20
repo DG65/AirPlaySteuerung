@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.3.0 (unveröffentlicht)
+## 0.4.0 (unveröffentlicht)
+
+- Neu: Modul „AirPlay-Klima" (`AIRPK`) — Temperatur und Luftfeuchte von HomePod mini / HomePod (2. Gen.) als
+  Variablen. Auslöse-Schalter „Messung anstoßen" (über die HomeKit-Brücke in Apple Home), WebHook mit geheimem
+  Schlüssel, Variablen je HomePod beim ersten Empfang, Status „Seit einiger Zeit keine Werte" nach drei Abständen.
+  Anleitung für die Apple-Home-Automation im Formular.
+
+## 0.3.0 (20.11.2026)
 
 - Neu: `AIRP_PlayPlaylist(id, link, zufällig)` startet Apple Music auf dem HomePod — Teilen-Link einer Playlist oder
   eines Albums (music.apple.com) oder Song-IDs; Titelliste wird von der öffentlichen Seite gelesen (höchstens 300).
