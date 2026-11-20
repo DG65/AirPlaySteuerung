@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/AirPlayKopplung.php';
 require_once __DIR__ . '/AirPlayAudioStrom.php';
+require_once __DIR__ . '/AirPlayFernsteuerung.php';
 
 // ===========================================================================
 // Eine Sitzung mit einem AirPlay-Gerät, rein in PHP ohne Symcon.
@@ -24,6 +25,7 @@ final class AirPlaySitzung
 
     private AirPlayRtsp $rtsp;
     private ?AirPlayAudioStrom $strom = null;
+    private ?AirPlayFernsteuerung $fern = null;
     private string $k = '';
     /** @var callable fn(string): void */
     private $log;
@@ -57,6 +59,17 @@ final class AirPlaySitzung
         $this->strom->einrichten();
     }
 
+    /** Fernsteuerkanal (MRP) öffnen; Wiedergabe läuft dabei weiter. */
+    public function fernsteuerung(): AirPlayFernsteuerung
+    {
+        if ($this->k === '') {
+            throw new LogicException('not paired');
+        }
+        $this->fern = new AirPlayFernsteuerung($this->rtsp, $this->host, $this->k, $this->log);
+        $this->fern->verbinden();
+        return $this->fern;
+    }
+
     /**
      * PCM abspielen (44,1 kHz, 16 Bit, Stereo, Big Endian). Blockiert bis zum Ende.
      * @param float|null $lautstaerke 0–100 %, null = Lautstärke des Geräts nicht ändern
@@ -73,6 +86,8 @@ final class AirPlaySitzung
     /** Sitzung beenden und alle Verbindungen schließen. Wirft nie. */
     public function schliessen(): void
     {
+        $this->fern?->schliessen();
+        $this->fern = null;
         $this->strom?->schliessen();
         $this->strom = null;
         $this->rtsp->verbindung->schliessen();

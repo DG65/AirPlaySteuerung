@@ -16,12 +16,15 @@
 
 ## Aufbau (libs/)
 
-- `AirPlayKrypto` (bplist, TLV8, SRP, ChaCha20, HKDF) → `AirPlayVerbindung` (TCP + HAP-Rahmen) → `AirPlayRtsp`
-  (HTTP/RTSP, CSeq, Warte-Haken) → `AirPlayKopplung` (transient, liefert K) → `AirPlayAudioStrom` (SETUP, Echtzeit-
-  PCM, Nebenkanäle) → `AirPlaySitzung` (Fassade). Alles ohne Symcon, prüfbar mit `.tools/test-airplay.php`.
+- `AirPlayKrypto` (bplist, TLV8, SRP, ChaCha20, HKDF, UUID) → `AirPlayVerbindung` (TCP + HAP-Rahmen) →
+  `AirPlayRtsp` (HTTP/RTSP, CSeq, Warte-Haken) → `AirPlayKopplung` (transient, liefert K) →
+  `AirPlayEreigniskanal` (Event-Kanal, gemeinsam) → `AirPlayAudioStrom` (Echtzeit-PCM) bzw.
+  `AirPlayFernsteuerung` (MRP-Tunnel: `AirPlayDatenkanal` + `AirPlayProtobuf` + `AirPlayMrp`) →
+  `AirPlaySitzung` (Fassade) → `AirPlayAblauf` (je Aktion eine kurze Sitzung: Zustand, Befehl, Lautstärke,
+  Durchsage mit Fortsetzen). Alles ohne Symcon, prüfbar mit `.tools/test-airplay.php`.
 - Fehler der Bibliotheken als `AirPlayFehler` (englische Vorlage + Werte), übersetzt im Modul über
   `AirPlayText::fehler()`. Texte: `.tools/locale-de.php` erzeugt alle locale.json, `.tools/texte-sammeln.php` prüft.
-- MRP (Stufe 2) kommt als eigener Baustein neben `AirPlayAudioStrom` und nutzt Kopplung + Steuerverbindung.
+- Anzeige per Timer-Abfrage statt Dauerverbindung (Entscheidung 20.11.2026): je Abfrage ~2 s, Standard 15 s.
 
 ## Protokoll — belegte Fakten (20.11.2026, HomePod 1. Gen. + mini, tvOS 27.2.1)
 
@@ -36,6 +39,19 @@
   AAD = Kopf[4:12]) + 8 Byte Nonce.
 - Live: 4,5-s-TTS an einen HomePod (1. Gen.), 747 Pakete in 5,96 s, 0 verspätet, sauber hörbar.
 - Live-Tests über `.tools/test-airplay.php --live <IP>`.
+
+## MRP im AirPlay-Tunnel (20.11.2026, HomePod 1. Gen.)
+
+- Nach der Kopplung: SETUP `isRemoteControlOnly` → eventPort (Event-Kanal), RECORD, SETUP Stream-Typ 130
+  (`seed`, `clientTypeUUID` 1910A70F-…) → dataPort; Datenkanal mit HKDF(K, "DataStream-Salt"+seed,
+  DataStream-Output/Input-Encryption-Key).
+- Datenkanal-Rahmen: 32-Byte-Kopf (Größe, „sync"/„rply", „comm", Folgenummer) + bplist {params:{data}};
+  `data` = Protobuf ProtocolMessage mit Varint-Längenpräfix. Anfragen „sync" mit „rply" bestätigen.
+- Begrüßung: DEVICE_INFO (Antwort abwarten) → SET_CONNECTION_STATE → CLIENT_UPDATES_CONFIG. Danach liefert
+  das Gerät DeviceInfo (deviceUID = Ziel für SET_VOLUME), VolumeDidChange, SetState (Titel im playbackQueue),
+  Cover nur nach PLAYBACK_QUEUE_REQUEST (bis ~1 s Verzögerung).
+- Live: Titel/Interpret/Album/App/Cover gelesen, Pause/Play, Lautstärke 20 % ↔ 25,6 %, Durchsage pausiert
+  die Musik, danach Play + alte Lautstärke → Musik lief hörbar weiter.
 
 ## Geräteerkennung (`libs/AirPlayGeraete.php`)
 

@@ -24,6 +24,10 @@ trait AirPlayFormular
             '• First release: announcements on HomePods via AirPlay 2 — pure PHP, without Home Assistant, Python or Docker.',
             '• AirPlay configurator: finds HomePods, Apple TVs and other AirPlay receivers on the network and shows which of them can play announcements.',
         ],
+        '0.2.0' => [
+            '• ▶️ New: shows what the HomePod is playing — state, title, artist, album, app, cover and volume — and controls it (play, pause, next/previous track, volume).',
+            '• 📢 After an announcement, music that was playing continues and the volume is restored.',
+        ],
     ];
 
     private static $AIRPLAY_REPO_URL     = 'https://github.com/DG65/AirPlaySteuerung';

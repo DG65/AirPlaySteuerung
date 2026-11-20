@@ -98,6 +98,14 @@ final class AirPlayVerbindung
         return true;
     }
 
+    /** Alle bisher empfangenen Klartext-Bytes abholen (für Kanäle ohne HTTP-Rahmen). */
+    public function klarAbholen(): string
+    {
+        $daten = $this->klarEin;
+        $this->klarEin = '';
+        return $daten;
+    }
+
     /** Eine vollständige HTTP-/RTSP-Nachricht aus dem Puffer nehmen, sonst null. */
     public function nachricht(): ?array
     {

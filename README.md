@@ -1,18 +1,24 @@
 # AirPlay-Steuerung
 
-Durchsagen auf dem HomePod — direkt aus Symcon, in reinem PHP. Ohne Home Assistant, ohne Python,
+Durchsagen auf dem HomePod, Anzeige und Steuerung der Wiedergabe — direkt aus Symcon, in reinem PHP. Ohne Home Assistant, ohne Python,
 ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
 
 [English version](README.en.md)
 
-> **Status: Beta 0.1.0.** Durchsagen auf HomePod (1. Generation) und HomePod mini sind an echter
-> Hardware geprüft. Fernsteuerung und Anzeige (Play/Pause, Titel, Cover) folgen in einer späteren
-> Version.
+> **Status: Beta 0.2.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
+> (1. Generation) und HomePod mini geprüft. Apple TV mit tvOS ist nach derselben Vorlage gebaut, aber
+> noch nicht an echter Hardware getestet.
 
 ## Was das Modul kann
 
 - **Durchsagen:** Eine WAV-Datei aus einem Symcon-Medienobjekt (oder als Bytes, z. B. aus einem
   TTS-Modul) wird per AirPlay 2 an einen HomePod gestreamt. Lautstärke für Durchsagen einstellbar.
+- **Fortsetzen:** Lief vor der Durchsage Musik, geht sie danach weiter, und die Lautstärke wird
+  zurückgestellt.
+- **Anzeige:** Zustand, Titel, Interpret, Album, App, Lautstärke und Cover als Variablen bzw.
+  Medienobjekt, per Abfrage im einstellbaren Abstand (Standard 15 s).
+- **Steuerung:** Abspielen, Pause, nächster/vorheriger Titel und Lautstärke — über die Variablen im
+  WebFront oder per Skript.
 - **Gong:** Zweiklang zum Testen oder als Ankündigung, ganz ohne Audiodatei.
 - **AirPlay-Konfigurator:** Findet HomePods, Apple TVs und andere AirPlay-Empfänger im Netz und zeigt
   in der Spalte „Durchsage", welche Geräte Durchsagen abspielen können. Geräte, die eine PIN-Kopplung
@@ -46,19 +52,27 @@ AIRP_AnnounceWave(12345, $wavBytes);
 
 AIRP_PlayChime(12345);        // Gong
 AIRP_TestConnection(12345);   // nur koppeln, ohne Ton
+
+// Steuerung
+AIRP_Play(12345); AIRP_Pause(12345); AIRP_Stop(12345);
+AIRP_Next(12345); AIRP_Previous(12345);
+AIRP_SetVolume(12345, 25);    // 0–100 %
+AIRP_Update(12345);           // Anzeige sofort auffrischen
 ```
 
 Alle Funktionen liefern `true` oder `false`, das Ergebnis steht zusätzlich im Panel „Durchsagen".
-Der Aufruf kehrt erst zurück, wenn die Durchsage fertig ist (Dauer + etwa 1,5 s).
+Eine Durchsage kehrt erst zurück, wenn sie fertig ist (Dauer + etwa 1,5 s, mit Fortsetzen + etwa
+3–5 s).
 
 **Audioformat:** WAV (PCM), beliebige Abtastrate, Mono oder Stereo, 8/16/24/32 Bit, höchstens
 120 Sekunden. Das Modul rechnet selbst auf 44,1 kHz Stereo um. MP3/AAC werden noch nicht unterstützt.
 
 ## Grenzen dieser Version
 
-- Eine Durchsage unterbricht, was der HomePod gerade spielt. Musik läuft danach **nicht** von selbst
-  weiter, und die Lautstärke bleibt auf dem Durchsage-Wert. Beides braucht den Fernsteuerkanal (MRP),
-  der in einer späteren Version kommt.
+- Die Anzeige wird abgefragt, nicht laufend gemeldet: Änderungen erscheinen mit bis zu einem
+  Abfrage-Abstand Verzögerung. Eine Abfrage hält einen PHP-Thread etwa 2 Sekunden.
+- Apple TV (tvOS): Anzeige und Steuerung sind nach Vorlage gebaut, aber ungeprüft; Ein/Aus, Tasten der
+  Fernbedienung und Apps fehlen noch.
 - Geräte anderer Hersteller mit AirPlay 2 (z. B. AV-Receiver) stehen auf „⚠️ ungeprüft": Sie bieten
   die nötige Kopplung, ausprobiert hat es aber noch niemand. Rückmeldungen sind willkommen.
 - Stereopaare und Gruppen mehrerer HomePods sind noch nicht geprüft.
@@ -66,8 +80,8 @@ Der Aufruf kehrt erst zurück, wenn die Durchsage fertig ist (Dauer + etwa 1,5 s
 ## Wie es funktioniert
 
 Das Modul spricht AirPlay 2 selbst: Kopplung ohne PIN-Eingabe (SRP-6a, 3072 Bit), verschlüsselte
-RTSP-Sitzung (ChaCha20-Poly1305), Audiostrom als rohes PCM in Echtzeit. Die Verbindungen bestehen
-nur während einer Durchsage. Der Ablauf ist nach der freien Bibliothek
+RTSP-Sitzung (ChaCha20-Poly1305), Audiostrom als rohes PCM in Echtzeit. Anzeige und Steuerung laufen über das Media Remote
+Protocol (MRP) im AirPlay-Tunnel. Verbindungen bestehen nur für die Dauer einer Aktion. Der Ablauf ist nach der freien Bibliothek
 [pyatv](https://github.com/postlund/pyatv) (MIT) in PHP nachgebaut, siehe
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 

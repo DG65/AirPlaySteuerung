@@ -8,7 +8,7 @@
 declare(strict_types=1);
 
 $basis = dirname(__DIR__);
-require_once $basis . '/libs/AirPlaySitzung.php';
+require_once $basis . '/libs/AirPlayAblauf.php';
 require_once $basis . '/libs/AirPlayAudio.php';
 require_once $basis . '/libs/AirPlayGeraete.php';
 
@@ -51,6 +51,33 @@ $c1 = new AirPlayChaCha($s, $s);
 $c2 = new AirPlayChaCha($s, $s);
 pruefe('Ver- und Entschlüsseln mit Zähler', $c2->decrypt($c1->encrypt('eins', 'x'), 'x') === 'eins' && $c2->decrypt($c1->encrypt('zwei'), '') === 'zwei');
 pruefe('HKDF-Länge', strlen(AirPlayHkdf::sha512('Control-Salt', 'Control-Write-Encryption-Key', random_bytes(64))) === 32);
+
+echo "Protobuf\n";
+$pb = AirPlayProtobuf::feld(1, 'varint', 300) . AirPlayProtobuf::feld(2, 'varint', -1) . AirPlayProtobuf::feld(3, 'string', 'Küche')
+    . AirPlayProtobuf::feld(4, 'float', 0.25) . AirPlayProtobuf::feld(5, 'double', 194.064) . AirPlayProtobuf::feld(6, 'bool', true)
+    . AirPlayProtobuf::feld(7, 'msg', AirPlayProtobuf::feld(1, 'string', 'innen'));
+$d = AirPlayProtobuf::decode($pb);
+pruefe('Varint, negative Zahl (10 Byte), Text', AirPlayProtobuf::int($d, 1) === 300 && AirPlayProtobuf::int($d, 2) === -1 && strlen(AirPlayProtobuf::varint(-1)) === 10 && AirPlayProtobuf::text($d, 3) === 'Küche');
+pruefe('float, double, bool, Untermeldung', AirPlayProtobuf::float($d, 4) === 0.25 && abs(AirPlayProtobuf::double($d, 5) - 194.064) < 1e-9
+    && AirPlayProtobuf::bool($d, 6) === true && AirPlayProtobuf::text(AirPlayProtobuf::msg($d, 7), 1) === 'innen');
+
+echo "MRP-Zustand\n";
+$f = fn (int $n, string $t, mixed $w) => AirPlayProtobuf::feld($n, $t, $w);
+$pfad = $f(2, 'msg', $f(2, 'string', 'com.apple.Music')) . $f(3, 'msg', $f(1, 'string', 'MediaRemote-DefaultPlayer'));
+$meta = $f(1, 'string', 'Ragnarok') . $f(6, 'string', 'Single') . $f(7, 'string', 'Ship of Odin') . $f(14, 'double', 194.0) . $f(31, 'string', 'image/jpeg');
+$item = $f(1, 'string', 'ID1') . $f(2, 'msg', $meta) . $f(3, 'bytes', 'JPEGDATEN');
+$setState = $f(3, 'msg', $f(2, 'msg', $item)) . $f(5, 'string', 'Musik') . $f(6, 'varint', 1) . $f(9, 'msg', $pfad);
+$mrp = new AirPlayMrp();
+$mrp->verarbeiten($f(1, 'varint', AirPlayMrp::SET_NOW_PLAYING_PLAYER) . $f(51, 'msg', $f(1, 'msg', $pfad)));
+$mrp->verarbeiten($f(1, 'varint', AirPlayMrp::SET_STATE) . $f(9, 'msg', $setState));
+$mrp->verarbeiten($f(1, 'varint', AirPlayMrp::VOLUME_DID_CHANGE) . $f(56, 'msg', $f(1, 'float', 0.256)));
+$w = $mrp->wiedergabe();
+pruefe('SetState → Titel, Interpret, Album, Zustand, App, Cover', $w['titel'] === 'Ragnarok' && $w['interpret'] === 'Ship of Odin' && $w['album'] === 'Single'
+    && $w['zustand'] === 'playing' && $w['app'] === 'Musik' && $w['cover'] === 'JPEGDATEN' && $w['dauer'] === 194.0, json_encode(array_diff_key($w, ['cover' => 1])));
+pruefe('VolumeDidChange → Lautstärke in %', $w['lautstaerke'] === 25.6);
+[$befehl] = AirPlayMrp::befehl('pause');
+$b = AirPlayProtobuf::decode($befehl);
+pruefe('Befehl pause kodiert (Typ 1, Erweiterung 6, Command 2)', AirPlayProtobuf::int($b, 1) === 1 && AirPlayProtobuf::int(AirPlayProtobuf::msg($b, 6), 1) === 2 && AirPlayProtobuf::text($b, 2) !== null);
 
 echo "Geräteerkennung (TXT wie im Netz gesehen, Kennungen ersetzt)\n";
 $faelle = [

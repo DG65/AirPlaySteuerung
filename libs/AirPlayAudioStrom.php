@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/AirPlayRtsp.php';
+require_once __DIR__ . '/AirPlayEreigniskanal.php';
 
 // ===========================================================================
 // Echtzeit-Audiostrom über AirPlay 2 (nach erfolgter Kopplung):
@@ -36,7 +36,7 @@ final class AirPlayAudioStrom
     private $steuerung = null;
     /** @var resource|null */
     private $audio = null;
-    private ?AirPlayVerbindung $ereignisse = null;
+    private ?AirPlayEreigniskanal $ereignisse = null;
     private ?AirPlayChaCha $chiffre = null;
     private int $steuerPort = 0;
     private int $rtpSeq = 0;
@@ -45,8 +45,6 @@ final class AirPlayAudioStrom
     private bool $ersteSync = true;
     /** @var callable fn(string): void */
     private $log;
-    /** Vom Gerät im Event-Kanal gemeldete Daten (updateInfo). */
-    public array $geraeteInfo = [];
 
     /** @param string $k gemeinsamer Schlüssel aus der Kopplung */
     public function __construct(private AirPlayRtsp $rtsp, private string $host, private string $k, callable $log)
@@ -71,11 +69,7 @@ final class AirPlayAudioStrom
         $sitzung = AirPlayRtsp::plist($this->rtsp->austausch('SETUP', null, [], self::sitzungsBeschreibung(self::port($this->zeit))));
         $ereignisPort = (int)($sitzung['eventPort'] ?? 0);
         if ($ereignisPort > 0) {
-            $this->ereignisse = new AirPlayVerbindung($this->host, $ereignisPort);
-            $this->ereignisse->verschluesseln(
-                AirPlayHkdf::sha512('Events-Salt', 'Events-Read-Encryption-Key', $this->k),
-                AirPlayHkdf::sha512('Events-Salt', 'Events-Write-Encryption-Key', $this->k)
-            );
+            $this->ereignisse = AirPlayEreigniskanal::oeffnen($this->host, $ereignisPort, $this->k, $this->log);
         }
 
         // Der Schlüssel des Audiostroms ist frei wählbar; wie bei pyatv aus K abgeleitet
@@ -116,7 +110,7 @@ final class AirPlayAudioStrom
     {
         return [
             'deviceID' => 'AA:BB:CC:DD:EE:FF',
-            'sessionUUID' => strtoupper(self::uuid()),
+            'sessionUUID' => AirPlayZufall::uuid(),
             'timingPort' => $zeitPort,
             'timingProtocol' => 'NTP',
             'isMultiSelectAirPlay' => true,
@@ -226,7 +220,7 @@ final class AirPlayAudioStrom
     /** Wartet höchstens $sekunden auf Daten und bedient Steuerverbindung, Zeit-, Steuer- und Event-Kanal. */
     public function bedienen(float $sekunden): void
     {
-        $lesen = array_values(array_filter([$this->rtsp->verbindung->socket, $this->zeit, $this->steuerung, $this->ereignisse?->socket]));
+        $lesen = array_values(array_filter([$this->rtsp->verbindung->socket, $this->zeit, $this->steuerung, $this->ereignisse?->verbindung->socket]));
         $schreiben = null;
         $fehler = null;
         $mikro = max(0, (int)($sekunden * 1e6));
@@ -271,38 +265,10 @@ final class AirPlayAudioStrom
 
     private function ereignisseBedienen(): void
     {
-        if ($this->ereignisse === null) {
-            return;
-        }
-        if (!$this->ereignisse->einlesen()) {
-            ($this->log)('Event-Kanal vom Gerät geschlossen');
+        if ($this->ereignisse !== null && !$this->ereignisse->bedienen()) {
             $this->ereignisse->schliessen();
             $this->ereignisse = null;
-            return;
         }
-        while (($n = $this->ereignisse->nachricht()) !== null) {
-            $this->ereignisMerken($n);
-            $antwort = "RTSP/1.0 200 OK\r\nContent-Length: 0\r\nAudio-Latency: 0\r\n";
-            foreach (['server' => 'Server', 'cseq' => 'CSeq'] as $klein => $name) {
-                if (isset($n['kopf'][$klein])) {
-                    $antwort .= $name . ': ' . $n['kopf'][$klein] . "\r\n";
-                }
-            }
-            $this->ereignisse->schreiben($antwort . "\r\n");
-        }
-    }
-
-    private function ereignisMerken(array $nachricht): void
-    {
-        try {
-            $daten = AirPlayRtsp::plist($nachricht);
-        } catch (Throwable) {
-            $daten = [];
-        }
-        if (($daten['type'] ?? '') === 'updateInfo' && is_array($daten['value'] ?? null)) {
-            $this->geraeteInfo = $daten['value'];
-        }
-        ($this->log)('Event: ' . $nachricht['erste'] . ' ' . (string)($daten['type'] ?? ''));
     }
 
     // ------------------------------------------------------------------ Abbau
@@ -359,11 +325,5 @@ final class AirPlayAudioStrom
     private static function jetztMikro(): int
     {
         return (int)(microtime(true) * 1e6);
-    }
-
-    private static function uuid(): string
-    {
-        $h = bin2hex(random_bytes(16));
-        return substr($h, 0, 8) . '-' . substr($h, 8, 4) . '-' . substr($h, 12, 4) . '-' . substr($h, 16, 4) . '-' . substr($h, 20);
     }
 }

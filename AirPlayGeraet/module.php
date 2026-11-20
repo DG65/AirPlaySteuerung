@@ -3,18 +3,19 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/AirPlayFormular.php';
-require_once __DIR__ . '/../libs/AirPlaySitzung.php';
+require_once __DIR__ . '/../libs/AirPlayAblauf.php';
 require_once __DIR__ . '/../libs/AirPlayAudio.php';
-require_once __DIR__ . '/../libs/AirPlayGeraete.php';
 
 // ===========================================================================
 // AirPlay-Gerät — ein AirPlay-Empfänger (HomePod, Apple TV, Fremdgerät).
 //
-// 0.1.0: Durchsagen. Eine WAV-Datei (Medienobjekt oder Bytes) wird per
-// AirPlay 2 an das Gerät gestreamt; der Aufruf blockiert für die Dauer der
-// Durchsage plus etwa 1,5 s. Verbindungen bestehen nur während der Durchsage
-// (eigene Sockets, Begründung in libs/AirPlayVerbindung.php).
-// Fernsteuerung und Anzeige (MRP) folgen in einer späteren Version.
+// Durchsagen: WAV (Medienobjekt oder Bytes) per AirPlay 2 an das Gerät; der
+// Aufruf blockiert für die Dauer der Durchsage plus 1,5–5 s. Laufende Musik
+// wird danach fortgesetzt und die Lautstärke zurückgestellt.
+// Fernsteuerung und Anzeige (MRP): Zustand, Titel, Interpret, Album, App,
+// Cover, Lautstärke per Timer-Abfrage; Play/Pause/Weiter/Zurück, Lautstärke.
+// Jede Aktion öffnet eine eigene kurze Sitzung (libs/AirPlayAblauf.php),
+// eigene Sockets, Begründung in libs/AirPlayVerbindung.php.
 // ===========================================================================
 
 class AirPlayGeraet extends IPSModule
@@ -23,6 +24,13 @@ class AirPlayGeraet extends IPSModule
 
     private const STATUS_ADRESSE_FEHLT = 201;
     private const STATUS_PHP_FEHLT = 202;
+    private const STATUS_NICHT_ERREICHBAR = 203;
+
+    // Werte der Variable „Zustand"
+    private const ZUSTAND = ['unknown' => 0, 'playing' => 1, 'paused' => 2, 'stopped' => 3, 'interrupted' => 2, 'seeking' => 1];
+    // Werte der Variable „Steuerung" → MRP-Befehl
+    private const STEUERUNG = [0 => 'previous', 1 => 'play', 2 => 'pause', 3 => 'next'];
+    private const BEFEHL_TEXT = ['play' => 'Play', 'pause' => 'Pause', 'stop' => 'Stop', 'next' => 'Next track', 'previous' => 'Previous track'];
 
     public function __construct($InstanceID)
     {
@@ -36,27 +44,57 @@ class AirPlayGeraet extends IPSModule
         $this->RegisterPropertyString('Host', '');
         $this->RegisterPropertyString('DeviceID', '');
         $this->RegisterPropertyString('Model', '');
+        $this->RegisterPropertyBoolean('RemoteControl', true);
+        $this->RegisterPropertyInteger('UpdateInterval', 15);
         $this->RegisterPropertyBoolean('SetVolume', true);
         $this->RegisterPropertyInteger('Volume', 30);
+        $this->RegisterPropertyBoolean('ResumeAfterAnnouncement', true);
         $this->RegisterAttributeString('LastResult', '');
+        $this->RegisterAttributeString('CoverKey', '');
+        $this->RegisterAttributeBoolean('Reachable', true);
+        $this->RegisterTimer('Update', 0, 'AIRP_Update($_IPS[\'TARGET\']);');
         $this->registerFormAttributes();
     }
 
     public function ApplyChanges()
     {
         parent::ApplyChanges();
+        $bereit = false;
         if ($this->fehlendeErweiterungen() !== []) {
             $this->SetStatus(self::STATUS_PHP_FEHLT);
-        } elseif (trim((string)$this->ReadPropertyString('Host')) === '') {
+        } elseif ($this->host() === '') {
             $this->SetStatus(self::STATUS_ADRESSE_FEHLT);
         } else {
-            $this->SetStatus(IS_ACTIVE);
+            $this->SetStatus($this->ReadAttributeBoolean('Reachable') ? IS_ACTIVE : self::STATUS_NICHT_ERREICHBAR);
+            $bereit = true;
         }
+        if ($this->fernsteuerungAn()) {
+            $this->variablenSicherstellen();
+        }
+        $sekunden = $this->fernsteuerungAn() && $bereit ? max(0, (int)$this->ReadPropertyInteger('UpdateInterval')) : 0;
+        $this->SetTimerInterval('Update', $sekunden > 0 ? max(5, $sekunden) * 1000 : 0);
         $modell = (string)$this->ReadPropertyString('Model');
-        $this->SetSummary(trim((string)$this->ReadPropertyString('Host') . ($modell !== '' ? ' · ' . $modell : '')));
+        $this->SetSummary(trim($this->host() . ($modell !== '' ? ' · ' . $modell : '')));
     }
 
-    // ------------------------------------------------------------------ öffentlich
+    public function RequestAction($Ident, $Value)
+    {
+        switch ($Ident) {
+            case 'Steuerung':
+                $befehl = self::STEUERUNG[(int)$Value] ?? null;
+                if ($befehl !== null) {
+                    $this->befehlAusfuehren($befehl);
+                }
+                break;
+            case 'Lautstaerke':
+                $this->SetVolume((int)$Value);
+                break;
+            default:
+                throw new Exception('Invalid Ident');
+        }
+    }
+
+    // ------------------------------------------------------------------ öffentlich: Durchsagen
 
     /** Durchsage aus einem Medienobjekt (Typ Ton, WAV) mit der eingestellten Lautstärke. */
     public function AnnounceMedia(int $MediaID): bool
@@ -95,31 +133,87 @@ class AirPlayGeraet extends IPSModule
             return $this->fehler(AirPlayText::t('Audio could not be read: %s', AirPlayText::fehler($e)));
         }
         $this->SendDebug('Audio', sprintf('%s, %.1f s', $audio['quelle'], $audio['sekunden']), 0);
-        return $this->abspielen($audio['pcm'], $Volume);
+        return $this->durchsageAbspielen($audio['pcm'], $Volume);
     }
 
     /** Kurzer Zweiklang-Gong, z. B. zum Testen. */
     public function PlayChime(): bool
     {
-        return $this->abspielen(AirPlayAudio::gong(), -1);
+        return $this->durchsageAbspielen(AirPlayAudio::gong(), -1);
     }
 
     /** Nur koppeln und Geräteinfo lesen, ohne Ton. */
     public function TestConnection(): bool
     {
-        $sitzung = null;
+        return $this->mitSperre(function (): bool {
+            $info = $this->ablauf()->info();
+            $this->ergebnis(AirPlayText::t('✅ Connected to "%s" (%s, software %s).', (string)($info['name'] ?? '?'), (string)($info['model'] ?? '?'), (string)($info['osBuildVersion'] ?? $info['sourceVersion'] ?? '?')));
+            return true;
+        }, 'Connection failed: %s');
+    }
+
+    // ------------------------------------------------------------------ öffentlich: Fernsteuerung
+
+    /** Zustand, Titel, Lautstärke und Cover abfragen und in die Variablen schreiben (Timer). */
+    public function Update(): bool
+    {
+        if (!$this->fernsteuerungAn() || $this->host() === '') {
+            return false;
+        }
+        $sperre = 'AIRP_' . $this->InstanceID;
+        if (!IPS_SemaphoreEnter($sperre, 0)) {
+            return false; // eine Durchsage oder ein Befehl läuft gerade
+        }
         try {
-            $sitzung = $this->sitzungOeffnen();
-            $sitzung->koppeln();
-            $info = $sitzung->info();
-            $text = AirPlayText::t('✅ Connected to "%s" (%s, software %s).', (string)($info['name'] ?? '?'), (string)($info['model'] ?? '?'), (string)($info['osBuildVersion'] ?? $info['sourceVersion'] ?? '?'));
-            $this->ergebnis($text);
+            $w = $this->ablauf()->zustand($this->ReadAttributeString('CoverKey'));
+            $this->erreichbar(true);
+            $this->wiedergabeSchreiben($w);
             return true;
         } catch (Throwable $e) {
-            return $this->fehler(AirPlayText::t('Connection failed: %s', AirPlayText::fehler($e)));
+            $this->erreichbar(false, AirPlayText::fehler($e));
+            return false;
         } finally {
-            $sitzung?->schliessen();
+            IPS_SemaphoreLeave($sperre);
         }
+    }
+
+    public function Play(): bool
+    {
+        return $this->befehlAusfuehren('play');
+    }
+
+    public function Pause(): bool
+    {
+        return $this->befehlAusfuehren('pause');
+    }
+
+    public function Stop(): bool
+    {
+        return $this->befehlAusfuehren('stop');
+    }
+
+    public function Next(): bool
+    {
+        return $this->befehlAusfuehren('next');
+    }
+
+    public function Previous(): bool
+    {
+        return $this->befehlAusfuehren('previous');
+    }
+
+    /** Lautstärke 0–100 % am Gerät setzen. */
+    public function SetVolume(int $Volume): bool
+    {
+        $Volume = max(0, min(100, $Volume));
+        return $this->mitSperre(function () use ($Volume): bool {
+            $ist = $this->ablauf()->lautstaerke((float)$Volume);
+            if ($ist !== null) {
+                $this->wertSetzen('Lautstaerke', (int)round($ist));
+            }
+            $this->ergebnis(AirPlayText::t('✅ Volume set to %s %%.', $Volume));
+            return true;
+        }, 'Volume could not be set: %s');
     }
 
     // ------------------------------------------------------------------ Formular-Knöpfe
@@ -136,57 +230,189 @@ class AirPlayGeraet extends IPSModule
         echo $this->ReadAttributeString('LastResult');
     }
 
-    // ------------------------------------------------------------------ intern
-
-    private function fehlendeErweiterungen(): array
+    public function UIUpdate(): void
     {
-        return array_values(array_filter(['gmp', 'sodium'], fn ($e) => !extension_loaded($e)));
+        echo $this->Update()
+            ? AirPlayText::t('✅ Updated: %s', $this->zusammenfassung())
+            : AirPlayText::t('❌ Update failed — see the message log.');
     }
 
-    private function sitzungOeffnen(): AirPlaySitzung
+    // ------------------------------------------------------------------ intern: Abläufe
+
+    private function ablauf(): AirPlayAblauf
     {
         if (($fehlt = $this->fehlendeErweiterungen()) !== []) {
-            throw new RuntimeException(AirPlayText::t('PHP extension missing: %s', implode(', ', $fehlt)));
+            throw new AirPlayFehler('PHP extension missing: %s', implode(', ', $fehlt));
         }
-        $host = trim((string)$this->ReadPropertyString('Host'));
-        if ($host === '') {
-            throw new RuntimeException(AirPlayText::t('No address entered.'));
+        if ($this->host() === '') {
+            throw new AirPlayFehler('No address entered.');
         }
-        return new AirPlaySitzung($host, fn (string $t) => $this->SendDebug('AirPlay', $t, 0));
+        return new AirPlayAblauf($this->host(), fn (string $t) => $this->SendDebug('AirPlay', $t, 0));
     }
 
-    private function abspielen(string $pcm, int $lautstaerke): bool
+    /** Arbeit unter der Instanz-Sperre ausführen; Fehler als Ergebnis melden. */
+    private function mitSperre(callable $arbeit, string $fehlerVorlage): bool
+    {
+        $sperre = 'AIRP_' . $this->InstanceID;
+        if (!IPS_SemaphoreEnter($sperre, 15000)) {
+            return $this->fehler(AirPlayText::t('An announcement is already running on this device.'));
+        }
+        try {
+            return (bool)$arbeit();
+        } catch (Throwable $e) {
+            return $this->fehler(AirPlayText::t($fehlerVorlage, AirPlayText::fehler($e)));
+        } finally {
+            IPS_SemaphoreLeave($sperre);
+        }
+    }
+
+    private function befehlAusfuehren(string $befehl): bool
+    {
+        return $this->mitSperre(function () use ($befehl): bool {
+            $w = $this->ablauf()->befehl($befehl);
+            $this->wertSetzen('Zustand', self::ZUSTAND[$w['zustand']] ?? 0);
+            $this->ergebnis(AirPlayText::t('✅ Command "%s" sent.', AirPlayText::t(self::BEFEHL_TEXT[$befehl] ?? $befehl)));
+            return true;
+        }, 'Command failed: %s');
+    }
+
+    private function durchsageAbspielen(string $pcm, int $lautstaerke): bool
     {
         if ($lautstaerke < 0) {
             $wert = $this->ReadPropertyBoolean('SetVolume') ? (float)$this->ReadPropertyInteger('Volume') : null;
         } else {
             $wert = (float)min(100, $lautstaerke);
         }
-        $sperre = 'AIRP_' . $this->InstanceID;
-        if (!IPS_SemaphoreEnter($sperre, 100)) {
-            return $this->fehler(AirPlayText::t('An announcement is already running on this device.'));
-        }
-        $sitzung = null;
-        try {
-            $sitzung = $this->sitzungOeffnen();
-            $sitzung->koppeln();
-            $sitzung->audioEinrichten();
-            $r = $sitzung->abspielen($pcm, $wert);
-            $sekunden = strlen($pcm) / 4 / AirPlayAudioStrom::ABTASTRATE;
+        $fortsetzen = $this->fernsteuerungAn() && $this->ReadPropertyBoolean('ResumeAfterAnnouncement');
+        return $this->mitSperre(function () use ($pcm, $wert, $fortsetzen): bool {
+            $r = $this->ablauf()->durchsage($pcm, $wert, $fortsetzen);
+            $sekunden = number_format(strlen($pcm) / 4 / AirPlayAudioStrom::ABTASTRATE, 1, ',', '');
             $text = $wert === null
-                ? AirPlayText::t('✅ Announcement played (%s s, volume unchanged).', number_format($sekunden, 1, ',', ''))
-                : AirPlayText::t('✅ Announcement played (%s s, volume %s %%).', number_format($sekunden, 1, ',', ''), (int)$wert);
+                ? AirPlayText::t('✅ Announcement played (%s s, volume unchanged).', $sekunden)
+                : AirPlayText::t('✅ Announcement played (%s s, volume %s %%).', $sekunden, (int)$wert);
+            if ($r['fortgesetzt']) {
+                $text .= ' ' . AirPlayText::t('Playback resumed.');
+            }
             if ($r['verspaetet'] > 10) {
                 $text .= ' ' . AirPlayText::t('⚠️ %s packets were late — the system was busy, there may have been dropouts.', $r['verspaetet']);
             }
             $this->ergebnis($text);
             return true;
-        } catch (Throwable $e) {
-            return $this->fehler(AirPlayText::t('Announcement failed: %s', AirPlayText::fehler($e)));
-        } finally {
-            $sitzung?->schliessen();
-            IPS_SemaphoreLeave($sperre);
+        }, 'Announcement failed: %s');
+    }
+
+    // ------------------------------------------------------------------ intern: Variablen
+
+    private function fernsteuerungAn(): bool
+    {
+        return $this->ReadPropertyBoolean('RemoteControl');
+    }
+
+    private function host(): string
+    {
+        return trim((string)$this->ReadPropertyString('Host'));
+    }
+
+    private static function optionen(array $werte): string
+    {
+        $o = [];
+        foreach ($werte as $wert => $text) {
+            $o[] = ['Value' => $wert, 'Caption' => $text, 'IconActive' => false, 'IconValue' => '', 'Color' => -1];
         }
+        return (string)json_encode($o);
+    }
+
+    /**
+     * Variablen nur anlegen, wenn sie fehlen: Darstellung und Position gehören danach dem Nutzer
+     * (Store-Review, SUITE.md 5/9m/28). Nie löschen.
+     */
+    private function variablenSicherstellen(): void
+    {
+        $t = fn (string $s) => AirPlayText::t($s);
+        $anzeige = ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION];
+        $liste = [
+            ['Zustand', $t('State'), VARIABLETYPE_INTEGER, ['PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
+                'OPTIONS' => self::optionen([0 => $t('Unknown'), 1 => $t('Playing'), 2 => $t('Paused'), 3 => $t('Stopped')])], false],
+            ['Steuerung', $t('Control'), VARIABLETYPE_INTEGER, ['PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
+                'OPTIONS' => self::optionen([0 => '⏮', 1 => '▶', 2 => '⏸', 3 => '⏭'])], true],
+            ['Lautstaerke', $t('Volume'), VARIABLETYPE_INTEGER, ['PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
+                'MIN' => 0, 'MAX' => 100, 'STEP_SIZE' => 1, 'SUFFIX' => ' %'], true],
+            ['Titel', $t('Title'), VARIABLETYPE_STRING, $anzeige, false],
+            ['Interpret', $t('Artist'), VARIABLETYPE_STRING, $anzeige, false],
+            ['Album', $t('Album'), VARIABLETYPE_STRING, $anzeige, false],
+            ['App', $t('App'), VARIABLETYPE_STRING, $anzeige, false],
+        ];
+        foreach ($liste as $pos => [$ident, $name, $typ, $darstellung, $aktion]) {
+            if (@$this->GetIDForIdent($ident) === false) {
+                $this->MaintainVariable($ident, $name, $typ, $darstellung, ($pos + 1) * 10, true);
+            }
+            if ($aktion) {
+                $this->EnableAction($ident);
+            }
+        }
+        if (@IPS_GetObjectIDByIdent('Cover', $this->InstanceID) === false) {
+            $id = IPS_CreateMedia(MEDIATYPE_IMAGE);
+            IPS_SetParent($id, $this->InstanceID);
+            IPS_SetIdent($id, 'Cover');
+            IPS_SetName($id, $t('Cover'));
+            IPS_SetPosition($id, 80);
+            IPS_SetMediaCached($id, true);
+            IPS_SetMediaFile($id, 'AirPlayCover_' . $this->InstanceID . '.jpg', false);
+        }
+    }
+
+    private function wertSetzen(string $ident, mixed $wert): void
+    {
+        $id = @$this->GetIDForIdent($ident);
+        if ($id !== false && GetValue($id) !== $wert) {
+            $this->SetValue($ident, $wert);
+        }
+    }
+
+    private function wiedergabeSchreiben(array $w): void
+    {
+        $this->wertSetzen('Zustand', self::ZUSTAND[$w['zustand']] ?? 0);
+        $this->wertSetzen('Titel', $w['titel']);
+        $this->wertSetzen('Interpret', $w['interpret']);
+        $this->wertSetzen('Album', $w['album']);
+        $this->wertSetzen('App', $w['app']);
+        if ($w['lautstaerke'] !== null) {
+            $this->wertSetzen('Lautstaerke', (int)round($w['lautstaerke']));
+        }
+        $schluessel = (string)$w['coverSchluessel'];
+        if ($schluessel !== $this->ReadAttributeString('CoverKey') && ($w['cover'] !== '' || $schluessel === '')) {
+            $cover = @IPS_GetObjectIDByIdent('Cover', $this->InstanceID);
+            if ($cover !== false) {
+                IPS_SetMediaContent($cover, base64_encode($w['cover']));
+            }
+            $this->WriteAttributeString('CoverKey', $schluessel);
+        }
+    }
+
+    /** Erreichbarkeit merken; Status und Meldung nur beim Wechsel (kein Log-Rauschen bei ausgeschaltetem Gerät). */
+    private function erreichbar(bool $ja, string $grund = ''): void
+    {
+        if ($ja === $this->ReadAttributeBoolean('Reachable')) {
+            return;
+        }
+        $this->WriteAttributeBoolean('Reachable', $ja);
+        $this->SetStatus($ja ? IS_ACTIVE : self::STATUS_NICHT_ERREICHBAR);
+        $this->LogMessage($ja ? AirPlayText::t('Device reachable again.') : AirPlayText::t('Device not reachable: %s', $grund), $ja ? KL_MESSAGE : KL_WARNING);
+    }
+
+    private function zusammenfassung(): string
+    {
+        $titel = @$this->GetIDForIdent('Titel');
+        $interpret = @$this->GetIDForIdent('Interpret');
+        $text = trim(($interpret !== false ? GetValueString($interpret) : '') . ' – ' . ($titel !== false ? GetValueString($titel) : ''), ' –');
+        return $text !== '' ? $text : AirPlayText::t('nothing playing');
+    }
+
+    // ------------------------------------------------------------------ intern: Ergebnis
+
+    private function fehlendeErweiterungen(): array
+    {
+        return array_values(array_filter(['gmp', 'sodium'], fn ($e) => !extension_loaded($e)));
     }
 
     private function ergebnis(string $text): void
@@ -212,8 +438,8 @@ class AirPlayGeraet extends IPSModule
     protected function airplayZweck(): array
     {
         return [
-            'Plays announcements on a HomePod via AirPlay 2 — directly from Symcon, without additional software.',
-            'Use it from scripts: AIRP_AnnounceMedia(<instance>, <media object with a WAV file>); — the call returns when the announcement has finished.',
+            'Plays announcements on a HomePod via AirPlay 2 and shows and controls what it is playing — directly from Symcon, without additional software.',
+            'Use it from scripts: AIRP_AnnounceMedia(<instance>, <media object with a WAV file>); — the call returns when the announcement has finished. Music that was playing continues afterwards.',
         ];
     }
 
@@ -221,9 +447,11 @@ class AirPlayGeraet extends IPSModule
     {
         return [
             'Audio format: WAV (PCM) with any sample rate, mono or stereo. The module converts it to 44.1 kHz stereo. MP3 is not supported yet. Maximum length: 120 seconds.',
-            'Functions: AIRP_AnnounceMedia(id, mediaID), AIRP_AnnounceMediaEx(id, mediaID, volume), AIRP_AnnounceWave(id, wavBytes), AIRP_AnnounceWaveEx(id, wavBytes, volume), AIRP_PlayChime(id), AIRP_TestConnection(id). Volume 0–100, -1 = setting of the instance. All return true or false; the result is shown in the panel "Announcements".',
-            'An announcement interrupts what the HomePod is playing at that moment. In this version, music does not resume automatically afterwards, and the volume stays at the announcement volume.',
-            'The device must be reachable from Symcon on TCP port 7000; for the audio, the device sends to UDP ports that Symcon opens for the duration of the announcement. A firewall on the Symcon host must allow that.',
+            'Announcement functions: AIRP_AnnounceMedia(id, mediaID), AIRP_AnnounceMediaEx(id, mediaID, volume), AIRP_AnnounceWave(id, wavBytes), AIRP_AnnounceWaveEx(id, wavBytes, volume), AIRP_PlayChime(id). Volume 0–100, -1 = setting of the instance.',
+            'Remote control functions: AIRP_Play(id), AIRP_Pause(id), AIRP_Stop(id), AIRP_Next(id), AIRP_Previous(id), AIRP_SetVolume(id, volume), AIRP_Update(id), AIRP_TestConnection(id). All return true or false; the result is shown in the panel "Announcements".',
+            'Resume: before an announcement, the module remembers whether something was playing and the volume; afterwards it restores the volume and continues playback. This adds about 3–5 seconds to the call.',
+            'Display: the HomePod only reports changes while a connection is open. The module therefore asks at the set interval (a query takes about 2 seconds); changes can appear with that delay.',
+            'The device must be reachable from Symcon on TCP port 7000 and on the ports it assigns per session; for the audio, the device sends time requests to UDP ports that Symcon opens for the duration of the announcement. A firewall on the Symcon host must allow that.',
         ];
     }
 
@@ -232,8 +460,8 @@ class AirPlayGeraet extends IPSModule
         $letztes = (string)$this->ReadAttributeString('LastResult');
         $fehlt = $this->fehlendeErweiterungen();
         $verbindung = [
-            'type' => 'ExpansionPanel', 'expanded' => trim((string)$this->ReadPropertyString('Host')) === '',
-            'caption' => '🔌  Connection',
+            'type' => 'ExpansionPanel', 'expanded' => $this->host() === '',
+            'caption' => '🔌  Connection & display',
             'items' => array_values(array_filter([
                 $fehlt !== [] ? ['type' => 'Label', 'caption' => AirPlayText::t('⚠️ PHP extension missing: %s — announcements are not possible on this system.', implode(', ', $fehlt))] : null,
                 ['type' => 'ValidationTextBox', 'name' => 'Host', 'caption' => 'IP address or host name', 'width' => '400px'],
@@ -241,6 +469,10 @@ class AirPlayGeraet extends IPSModule
                 ['type' => 'ValidationTextBox', 'name' => 'DeviceID', 'caption' => 'Device ID (from the network search)', 'width' => '400px', 'enabled' => false],
                 ['type' => 'ValidationTextBox', 'name' => 'Model', 'caption' => 'Device type', 'width' => '400px', 'enabled' => false],
                 ['type' => 'Button', 'caption' => '🔗 Test connection (no sound)', 'onClick' => 'AIRP_UITest($id);'],
+                ['type' => 'CheckBox', 'name' => 'RemoteControl', 'caption' => 'Show and control playback (HomePod, Apple TV)'],
+                ['type' => 'NumberSpinner', 'name' => 'UpdateInterval', 'caption' => 'Update interval', 'suffix' => 's', 'minimum' => 0, 'maximum' => 3600],
+                ['type' => 'Label', 'caption' => '0 = no automatic update. Values below 5 seconds are raised to 5.'],
+                ['type' => 'Button', 'caption' => '🔄 Update now', 'onClick' => 'AIRP_UIUpdate($id);'],
             ])),
         ];
         $durchsagen = [
@@ -250,6 +482,7 @@ class AirPlayGeraet extends IPSModule
                 ['type' => 'CheckBox', 'name' => 'SetVolume', 'caption' => 'Set the volume for announcements'],
                 ['type' => 'NumberSpinner', 'name' => 'Volume', 'caption' => 'Volume for announcements', 'suffix' => '%', 'minimum' => 0, 'maximum' => 100],
                 ['type' => 'Label', 'caption' => 'Without the checkbox, the announcement plays at the volume currently set on the device.'],
+                ['type' => 'CheckBox', 'name' => 'ResumeAfterAnnouncement', 'caption' => 'Afterwards, restore the volume and continue playback'],
                 ['type' => 'Button', 'caption' => '🔔 Play chime', 'onClick' => 'AIRP_UIChime($id);'],
                 ['type' => 'Label', 'name' => 'LastResult', 'caption' => $letztes !== '' ? $letztes : AirPlayText::t('ℹ️ No announcement played yet.')],
             ],
@@ -258,6 +491,7 @@ class AirPlayGeraet extends IPSModule
             ['code' => 102, 'icon' => 'active', 'caption' => 'Ready'],
             ['code' => self::STATUS_ADRESSE_FEHLT, 'icon' => 'inactive', 'caption' => 'Please enter the address of the device'],
             ['code' => self::STATUS_PHP_FEHLT, 'icon' => 'error', 'caption' => 'PHP extension gmp or sodium missing'],
+            ['code' => self::STATUS_NICHT_ERREICHBAR, 'icon' => 'error', 'caption' => 'Device not reachable'],
         ]);
     }
 }

@@ -145,7 +145,7 @@ class AirPlayKonfigurator extends IPSModule
             if ($g['durchsage'] !== 'nein' || $treffer !== 0) {
                 $zeile['create'] = [
                     'moduleID' => self::GERAET,
-                    'configuration' => ['Host' => $g['adresse'], 'DeviceID' => $g['deviceId'], 'Model' => self::typText($g)],
+                    'configuration' => ['Host' => $g['adresse'], 'DeviceID' => $g['deviceId'], 'Model' => self::typText($g), 'RemoteControl' => $g['steuerung']],
                     'name' => $g['name'],
                 ];
             }

@@ -1,18 +1,24 @@
 # AirPlay-Steuerung
 
-Announcements on your HomePod — straight from Symcon, in pure PHP. No Home Assistant, no Python,
+Announcements on your HomePod, plus now-playing display and playback control — straight from Symcon, in pure PHP. No Home Assistant, no Python,
 no Docker, no additional software on the Symcon host.
 
 [Deutsche Version](README.md)
 
-> **Status: beta 0.1.0.** Announcements on HomePod (1st generation) and HomePod mini have been tested
-> on real hardware. Remote control and now-playing information (play/pause, title, artwork) will follow
-> in a later version.
+> **Status: beta 0.2.0.** Announcements, resuming afterwards, display and control have been tested on
+> HomePod (1st generation) and HomePod mini. Apple TV with tvOS follows the same reference, but has not
+> been tested on real hardware yet.
 
 ## Features
 
 - **Announcements:** a WAV file from a Symcon media object (or as raw bytes, e.g. from a TTS module) is
   streamed to a HomePod via AirPlay 2, with a configurable announcement volume.
+- **Resume:** if music was playing before the announcement, it continues afterwards and the volume is
+  restored.
+- **Display:** state, title, artist, album, app, volume and artwork as variables and a media object,
+  polled at an adjustable interval (default 15 s).
+- **Control:** play, pause, next/previous track and volume — through the variables in the WebFront or
+  from scripts.
 - **Chime:** a two-tone chime for testing or as a lead-in, no audio file needed.
 - **AirPlay configurator:** finds HomePods, Apple TVs and other AirPlay receivers on the network. The
   column "Announcement" shows which devices can play announcements. Devices that require pairing with a
@@ -46,19 +52,26 @@ AIRP_AnnounceWave(12345, $wavBytes);
 
 AIRP_PlayChime(12345);        // chime
 AIRP_TestConnection(12345);   // pair only, no sound
+
+// Control
+AIRP_Play(12345); AIRP_Pause(12345); AIRP_Stop(12345);
+AIRP_Next(12345); AIRP_Previous(12345);
+AIRP_SetVolume(12345, 25);    // 0–100 %
+AIRP_Update(12345);           // refresh the display now
 ```
 
-All functions return `true` or `false`; the result is also shown in the panel "Announcements". The call
-returns once the announcement has finished (duration plus about 1.5 s).
+All functions return `true` or `false`; the result is also shown in the panel "Announcements". An announcement
+returns once it has finished (duration plus about 1.5 s, with resume plus about 3–5 s).
 
 **Audio format:** WAV (PCM), any sample rate, mono or stereo, 8/16/24/32 bit, at most 120 seconds. The
 module converts it to 44.1 kHz stereo itself. MP3/AAC are not supported yet.
 
 ## Limitations of this version
 
-- An announcement interrupts whatever the HomePod is playing. Music does **not** resume afterwards, and
-  the volume stays at the announcement level. Both need the remote control channel (MRP), which will
-  come in a later version.
+- The display is polled, not pushed: changes appear with up to one polling interval of delay. A query
+  keeps a PHP thread busy for about 2 seconds.
+- Apple TV (tvOS): display and control follow the reference but are untested; power, remote buttons and
+  apps are still missing.
 - AirPlay 2 receivers from other manufacturers (e.g. AV receivers) are shown as "⚠️ untested": they
   offer the required pairing, but nobody has tried them yet. Feedback is welcome.
 - Stereo pairs and groups of several HomePods have not been tested yet.
@@ -66,8 +79,8 @@ module converts it to 44.1 kHz stereo itself. MP3/AAC are not supported yet.
 ## How it works
 
 The module speaks AirPlay 2 itself: pairing without PIN entry (SRP-6a, 3072 bit), an encrypted RTSP
-session (ChaCha20-Poly1305) and the audio stream as raw PCM in real time. Connections exist only during
-an announcement. The protocol flow is reimplemented in PHP after the open library
+session (ChaCha20-Poly1305) and the audio stream as raw PCM in real time. Display and control use the Media
+Remote Protocol (MRP) inside the AirPlay tunnel. Connections exist only for the duration of an action. The protocol flow is reimplemented in PHP after the open library
 [pyatv](https://github.com/postlund/pyatv) (MIT), see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Related modules

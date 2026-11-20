@@ -386,3 +386,13 @@ final class AirPlayHkdf
         return hash_hkdf('sha512', $geheimnis, 32, $info, $salz);
     }
 }
+
+final class AirPlayZufall
+{
+    /** Zufällige UUID in Großbuchstaben (Format 8-4-4-4-12), wie Apple-Geräte sie erwarten. */
+    public static function uuid(): string
+    {
+        $h = strtoupper(bin2hex(random_bytes(16)));
+        return substr($h, 0, 8) . '-' . substr($h, 8, 4) . '-' . substr($h, 12, 4) . '-' . substr($h, 16, 4) . '-' . substr($h, 20);
+    }
+}
