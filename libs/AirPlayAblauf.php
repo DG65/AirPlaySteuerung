@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/AirPlaySitzung.php';
+require_once __DIR__ . '/AirPlayAppleMusic.php';
 
 // ===========================================================================
 // Abläufe, wie das Modul sie braucht — je Aufruf eine eigene, kurze Sitzung
@@ -58,6 +59,21 @@ final class AirPlayAblauf
             $f->warten(0.5);
             $f->befehl($name);
             $f->warten(1.0);
+            return $f->mrp->wiedergabe();
+        });
+    }
+
+    /**
+     * Apple-Music-Titel als Warteschlange starten (Song-IDs aus AirPlayAppleMusic).
+     * @param list<string> $ids
+     */
+    public function titelliste(array $ids, bool $zufall): array
+    {
+        $plist = AirPlayAppleMusic::warteschlange($ids, $zufall);
+        return $this->mitFernsteuerung(function (AirPlayFernsteuerung $f) use ($plist): array {
+            $f->warten(0.5);
+            $f->warteschlange($plist);
+            $f->warten(2.0);
             return $f->mrp->wiedergabe();
         });
     }

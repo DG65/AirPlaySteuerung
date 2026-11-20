@@ -73,11 +73,41 @@ $mrp->verarbeiten($f(1, 'varint', AirPlayMrp::SET_STATE) . $f(9, 'msg', $setStat
 $mrp->verarbeiten($f(1, 'varint', AirPlayMrp::VOLUME_DID_CHANGE) . $f(56, 'msg', $f(1, 'float', 0.256)));
 $w = $mrp->wiedergabe();
 pruefe('SetState → Titel, Interpret, Album, Zustand, App, Cover', $w['titel'] === 'Ragnarok' && $w['interpret'] === 'Ship of Odin' && $w['album'] === 'Single'
-    && $w['zustand'] === 'playing' && $w['app'] === 'Musik' && $w['cover'] === 'JPEGDATEN' && $w['dauer'] === 194.0, json_encode(array_diff_key($w, ['cover' => 1])));
+    && $w['zustand'] === 'playing' && $w['app'] === 'Apple Music' && $w['cover'] === 'JPEGDATEN' && $w['dauer'] === 194.0, json_encode(array_diff_key($w, ['cover' => 1])));
 pruefe('VolumeDidChange → Lautstärke in %', $w['lautstaerke'] === 25.6);
 [$befehl] = AirPlayMrp::befehl('pause');
 $b = AirPlayProtobuf::decode($befehl);
 pruefe('Befehl pause kodiert (Typ 1, Erweiterung 6, Command 2)', AirPlayProtobuf::int($b, 1) === 1 && AirPlayProtobuf::int(AirPlayProtobuf::msg($b, 6), 1) === 2 && AirPlayProtobuf::text($b, 2) !== null);
+
+echo "Apple Music\n";
+$seite = '<html><script type="application/json" id="serialized-server-data">' . json_encode([['data' => ['sections' => [
+    ['items' => [
+        ['title' => 'A', 'contentDescriptor' => ['kind' => 'song', 'identifiers' => ['storeAdamID' => '1440820524']]],
+        ['contentDescriptor' => ['kind' => 'song', 'identifiers' => ['storeAdamID' => '1440820524']]],
+        ['title' => 'B', 'contentDescriptor' => ['kind' => 'song', 'identifiers' => ['storeAdamID' => '1440816455']]],
+        ['title' => 'Album', 'contentDescriptor' => ['kind' => 'album', 'identifiers' => ['storeAdamID' => '999']]],
+    ]],
+]]]]) . '</script></html>';
+pruefe('Song-IDs aus Seite (Reihenfolge, ohne Doppelte, ohne Alben)', AirPlayAppleMusic::songIdsAusSeite($seite) === ['1440820524', '1440816455']);
+pruefe('Song-IDs als Liste', AirPlayAppleMusic::songIds('1440820524, 1440816455 1440820524') === ['1440820524', '1440816455']);
+pruefe('nur https://music.apple.com gilt als Link', AirPlayAppleMusic::istLink('https://music.apple.com/de/playlist/x/pl.u-1')
+    && !AirPlayAppleMusic::istLink('http://music.apple.com/x') && !AirPlayAppleMusic::istLink('https://music.apple.com.example.org/x'));
+try {
+    AirPlayAppleMusic::songIds('file:///etc/passwd');
+    pruefe('Fremde Eingabe abgelehnt', false);
+} catch (AirPlayFehler $e) {
+    pruefe('Fremde Eingabe abgelehnt', $e->vorlage === 'neither an Apple Music link nor a list of song IDs');
+}
+$q = AirPlayBplist::decode(AirPlayAppleMusic::warteschlange(['111', '222'], false));
+pruefe('Warteschlange: PQty 3, sofort, Titel, erster Titel, Zufall aus', $q['PQty'] === 3 && $q['PQip'] === true && $q['PQst'] === ['111', '222'] && $q['PQfg'] === '111' && $q['PQts'] === 1);
+$q = AirPlayBplist::decode(AirPlayAppleMusic::warteschlange(['111', '222'], true));
+pruefe('Warteschlange mit Zufall', $q['PQts'] === 3 && in_array($q['PQfg'], ['111', '222'], true));
+[$n] = AirPlayMrp::warteschlangeSetzen('PLIST');
+$b = AirPlayProtobuf::msg(AirPlayProtobuf::decode($n), 6);
+pruefe('SetPlaybackQueue: Befehl 48, Optionen Feld 15', AirPlayProtobuf::int($b, 1) === 48 && AirPlayProtobuf::text(AirPlayProtobuf::msg($b, 2), 15) === 'PLIST');
+$mrp = new AirPlayMrp();
+$mrp->verarbeiten($f(1, 'varint', AirPlayMrp::SEND_COMMAND_RESULT) . $f(2, 'string', 'X1') . $f(7, 'msg', $f(1, 'varint', 0) . $f(2, 'varint', 404)));
+pruefe('Befehlsergebnis gelesen', $mrp->befehlsErgebnis('X1') === ['sendError' => 0, 'status' => 404] && $mrp->befehlsErgebnis('X2') === null);
 
 echo "Geräteerkennung (TXT wie im Netz gesehen, Kennungen ersetzt)\n";
 $faelle = [

@@ -28,6 +28,10 @@ trait AirPlayFormular
             '• ▶️ New: shows what the HomePod is playing — state, title, artist, album, app, cover and volume — and controls it (play, pause, next/previous track, volume).',
             '• 📢 After an announcement, music that was playing continues and the volume is restored.',
         ],
+        '0.3.0' => [
+            '• 🎵 New: start Apple Music on the HomePod — paste the share link of a playlist or album, optionally shuffled (AIRP_PlayPlaylist).',
+            '• The app name now shows "Apple Music" instead of the internal name "AirMusic".',
+        ],
     ];
 
     private static $AIRPLAY_REPO_URL     = 'https://github.com/DG65/AirPlaySteuerung';

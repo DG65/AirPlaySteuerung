@@ -125,6 +125,18 @@ final class AirPlayFernsteuerung
         $this->warteAufAntwort($id, 3.0);
     }
 
+    /** Warteschlange setzen (Plist aus AirPlayAppleMusic); wirft, wenn das Gerät sie ablehnt. */
+    public function warteschlange(string $warteschlange): void
+    {
+        [$nachricht, $id] = AirPlayMrp::warteschlangeSetzen($warteschlange);
+        $this->daten?->senden($nachricht);
+        $this->warteAufAntwort($id, 8.0);
+        $ergebnis = $this->mrp->befehlsErgebnis($id);
+        if ($ergebnis !== null && ($ergebnis['sendError'] !== 0 || !in_array($ergebnis['status'], [null, 0], true))) {
+            throw new AirPlayFehler('the device rejected the playlist (error %s, status %s)', $ergebnis['sendError'], $ergebnis['status'] ?? '–');
+        }
+    }
+
     /** Lautstärke 0–100 % setzen; wartet kurz auf die Bestätigung. */
     public function lautstaerke(float $prozent): void
     {

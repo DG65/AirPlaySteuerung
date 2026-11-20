@@ -53,6 +53,18 @@
 - Live: Titel/Interpret/Album/App/Cover gelesen, Pause/Play, Lautstärke 20 % ↔ 25,6 %, Durchsage pausiert
   die Musik, danach Play + alte Lautstärke → Musik lief hörbar weiter.
 
+## Apple Music starten (20.11.2026, live am HomePod 1. Gen.)
+
+- SEND_COMMAND 48 (SetPlaybackQueue), CommandOptions Feld 15 `systemAppPlaybackQueueData` = **Binär-Plist** nach
+  MediaRemote `MRSystemAppPlaybackQueueCreateExternalRepresentation` (dekompiliertes iOS 26.1, GitHub
+  EthanArbuckle/iPhone18-3_26.1_23B85_Restore, MediaRemote_05.mm): PQty 3 = Titelliste, PQip sofort, PQri 2,
+  PQfn, PQst Song-IDs (Strings), PQfg erster Titel, PQts Zufall (1 aus, 3 Titel), PQtr Wiederholen (1 aus).
+  PQis (archiviertes MPIdentifierSet = echte Playlist) nicht nachgebaut.
+- Fehlversuche zur Erinnerung: contextID/stationURL → Status 404; Plist mit erfundenen Schlüsseln → Apple Music
+  startet irgendeinen Sender (Status 0!) — Status 0 allein beweist nichts, immer den ersten Titel vergleichen.
+- Song-IDs: music.apple.com, script#serialized-server-data, contentDescriptor.kind = song → identifiers.storeAdamID.
+- Der HomePod nennt seine Musik-App intern „AirMusic" (Bundle com.apple.Music) → Anzeige über APP_NAMEN.
+
 ## Geräteerkennung (`libs/AirPlayGeraete.php`)
 
 - Aus TXT von `_airplay._tcp`: flags 0x8/0x200 → PIN nötig (LG OLED C9: 0x644), acl=1, act=2, pw/0x80,

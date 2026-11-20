@@ -156,6 +156,22 @@ $de = [
     'Display: the HomePod only reports changes while a connection is open. The module therefore asks at the set interval (a query takes about 2 seconds); changes can appear with that delay.' => 'Anzeige: Der HomePod meldet Änderungen nur, solange eine Verbindung offen ist. Das Modul fragt deshalb im eingestellten Abstand ab (eine Abfrage dauert etwa 2 Sekunden); Änderungen können entsprechend verzögert erscheinen.',
     'The device must be reachable from Symcon on TCP port 7000 and on the ports it assigns per session; for the audio, the device sends time requests to UDP ports that Symcon opens for the duration of the announcement. A firewall on the Symcon host must allow that.' => 'Das Gerät muss von Symcon aus über TCP-Port 7000 und die je Sitzung vergebenen Ports erreichbar sein; für den Ton schickt das Gerät Zeitabfragen an UDP-Ports, die Symcon für die Dauer der Durchsage öffnet. Eine Firewall auf dem Symcon-Rechner muss das zulassen.',
 
+    'neither an Apple Music link nor a list of song IDs' => 'weder ein Apple-Music-Link noch eine Liste von Song-IDs',
+    'Apple Music page could not be loaded (HTTP %s)' => 'Apple-Music-Seite konnte nicht geladen werden (HTTP %s)',
+    'the Apple Music page has an unknown format' => 'die Apple-Music-Seite hat ein unbekanntes Format',
+    'no songs found on the Apple Music page' => 'keine Titel auf der Apple-Music-Seite gefunden',
+    'the device rejected the playlist (error %s, status %s)' => 'das Gerät hat die Titelliste abgelehnt (Fehler %s, Status %s)',
+    'Start Apple Music: paste the share link of a playlist or album (Apple Music app: … → Share → Copy link). The HomePod plays a copy of the song list; later changes to the playlist are not included.' => 'Apple Music starten: Teilen-Link einer Playlist oder eines Albums einfügen (Apple-Music-App: … → Teilen → Link kopieren). Der HomePod spielt eine Kopie der Titelliste; spätere Änderungen an der Playlist sind nicht enthalten.',
+    'Apple Music link' => 'Apple-Music-Link',
+    'Shuffle' => 'Zufällig',
+    '🎵 Play' => '🎵 Abspielen',
+    '✅ Apple Music started with %s songs: %s' => '✅ Apple Music mit %s Titeln gestartet: %s',
+    'Playlist could not be started: %s' => 'Playlist konnte nicht gestartet werden: %s',
+    'Apple Music: AIRP_PlayPlaylist(id, link, shuffle) starts the songs of a playlist or album from its share link (music.apple.com), or a comma-separated list of song IDs. The module reads the song list from the public Apple Music page; the HomePod plays it from its own Apple Music account.' => 'Apple Music: AIRP_PlayPlaylist(id, link, zufällig) startet die Titel einer Playlist oder eines Albums über den Teilen-Link (music.apple.com) oder eine durch Komma getrennte Liste von Song-IDs. Das Modul liest die Titelliste von der öffentlichen Apple-Music-Seite; der HomePod spielt sie über sein eigenes Apple-Music-Konto.',
+
+    '• 🎵 New: start Apple Music on the HomePod — paste the share link of a playlist or album, optionally shuffled (AIRP_PlayPlaylist).' => '• 🎵 Neu: Apple Music auf dem HomePod starten — Teilen-Link einer Playlist oder eines Albums einfügen, auf Wunsch zufällig (AIRP_PlayPlaylist).',
+    '• The app name now shows "Apple Music" instead of the internal name "AirMusic".' => '• Als App steht jetzt „Apple Music" statt des internen Namens „AirMusic".',
+
     // AirPlay-Konfigurator
     '🔍  AirPlay devices on the network' => '🔍  AirPlay-Geräte im Netz',
     '🔍 Search again' => '🔍 Erneut suchen',

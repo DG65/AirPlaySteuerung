@@ -5,7 +5,7 @@ no Docker, no additional software on the Symcon host.
 
 [Deutsche Version](README.md)
 
-> **Status: beta 0.2.0.** Announcements, resuming afterwards, display and control have been tested on
+> **Status: beta 0.3.0.** Announcements, resuming afterwards, display and control have been tested on
 > HomePod (1st generation) and HomePod mini. Apple TV with tvOS follows the same reference, but has not
 > been tested on real hardware yet.
 
@@ -19,6 +19,8 @@ no Docker, no additional software on the Symcon host.
   polled at an adjustable interval (default 15 s).
 - **Control:** play, pause, next/previous track and volume — through the variables in the WebFront or
   from scripts.
+- **Start Apple Music:** paste the share link of a playlist or album — the HomePod plays the songs from
+  its own Apple Music account, optionally shuffled.
 - **Chime:** a two-tone chime for testing or as a lead-in, no audio file needed.
 - **AirPlay configurator:** finds HomePods, Apple TVs and other AirPlay receivers on the network. The
   column "Announcement" shows which devices can play announcements. Devices that require pairing with a
@@ -58,7 +60,14 @@ AIRP_Play(12345); AIRP_Pause(12345); AIRP_Stop(12345);
 AIRP_Next(12345); AIRP_Previous(12345);
 AIRP_SetVolume(12345, 25);    // 0–100 %
 AIRP_Update(12345);           // refresh the display now
+
+// Apple Music: share link of a playlist/album or song IDs, true = shuffle
+AIRP_PlayPlaylist(12345, 'https://music.apple.com/us/playlist/…/pl.u-…', true);
 ```
+
+**Apple Music:** the module reads the song list from the public Apple Music page of the link and hands it
+to the HomePod as a queue (at most 300 songs). It plays a copy: if the playlist changes later, simply call
+`AIRP_PlayPlaylist` again. The HomePod needs an Apple Music subscription.
 
 All functions return `true` or `false`; the result is also shown in the panel "Announcements". An announcement
 returns once it has finished (duration plus about 1.5 s, with resume plus about 3–5 s).

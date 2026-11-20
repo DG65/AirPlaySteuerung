@@ -21,6 +21,8 @@ final class AirPlayMrp
     public const SEND_COMMAND = 1;
     public const SEND_COMMAND_RESULT = 2;
     public const SET_STATE = 4;
+    /** Befehl SetPlaybackQueue (CommandInfo.proto) */
+    private const BEFEHL_WARTESCHLANGE = 48;
     public const DEVICE_INFO = 15;
     public const CLIENT_UPDATES_CONFIG = 16;
     public const PLAYBACK_QUEUE_REQUEST = 32;
@@ -55,6 +57,14 @@ final class AirPlayMrp
         'shuffle' => 7, 'repeat' => 8, 'skipForward' => 18, 'skipBackward' => 19,
     ];
 
+    // Anzeigenamen für Apple-eigene Apps (der HomePod nennt seine Musik-App intern „AirMusic")
+    private const APP_NAMEN = [
+        'com.apple.Music' => 'Apple Music',
+        'com.apple.podcasts' => 'Podcasts',
+        'com.apple.TVMusic' => 'Apple Music',
+        'com.apple.TVWatchList' => 'Apple TV',
+    ];
+
     // PlaybackState.Enum
     public const ZUSTAND = [0 => 'unknown', 1 => 'playing', 2 => 'paused', 3 => 'stopped', 4 => 'interrupted', 5 => 'seeking'];
 
@@ -64,11 +74,15 @@ final class AirPlayMrp
     private array $clients = [];
     private string $aktiverClient = '';
     private string $aktiverPlayer = '';
+    /** Laufende Nummer der letzten Zustandsmeldung je Player (neueste gewinnt) */
+    private int $folge = 0;
     public ?float $lautstaerke = null;
     public string $geraeteUid = '';
     public string $geraeteName = '';
     /** @var array<string, bool> eingegangene Antworten je identifier */
     private array $antworten = [];
+    /** @var array<string, array{sendError:int, status:?int}> Ergebnisse von Befehlen je identifier */
+    private array $befehlsErgebnisse = [];
 
     // ------------------------------------------------------------------ Bauen
 
@@ -116,6 +130,15 @@ final class AirPlayMrp
         return self::nachricht(self::SEND_COMMAND, AirPlayProtobuf::feld(1, 'varint', self::BEFEHLE[$name]));
     }
 
+    /**
+     * Warteschlange setzen (SetPlaybackQueue mit systemAppPlaybackQueueData, siehe AirPlayAppleMusic).
+     */
+    public static function warteschlangeSetzen(string $warteschlange): array
+    {
+        $optionen = AirPlayProtobuf::feld(15, 'bytes', $warteschlange);
+        return self::nachricht(self::SEND_COMMAND, AirPlayProtobuf::feld(1, 'varint', self::BEFEHL_WARTESCHLANGE) . AirPlayProtobuf::feld(2, 'msg', $optionen));
+    }
+
     /** @param float $prozent 0–100 */
     public function lautstaerkeSetzen(float $prozent): array
     {
@@ -147,6 +170,11 @@ final class AirPlayMrp
         }
         $innen = isset(self::EXT[$typ]) ? AirPlayProtobuf::msg($p, self::EXT[$typ]) : [];
         switch ($typ) {
+            case self::SEND_COMMAND_RESULT:
+                if ($id !== null && $id !== '') {
+                    $this->befehlsErgebnisse[$id] = ['sendError' => (int)AirPlayProtobuf::int($innen, 1, 0), 'status' => AirPlayProtobuf::int($innen, 2)];
+                }
+                break;
             case self::DEVICE_INFO:
                 $this->geraeteUid = (string)(AirPlayProtobuf::text($innen, 35) ?: AirPlayProtobuf::text($innen, 19) ?: '');
                 $this->geraeteName = (string)AirPlayProtobuf::text($innen, 2);
@@ -189,6 +217,12 @@ final class AirPlayMrp
         return isset($this->antworten[$identifier]);
     }
 
+    /** @return array{sendError:int, status:?int}|null Ergebnis eines Befehls, null = keins erhalten */
+    public function befehlsErgebnis(string $identifier): ?array
+    {
+        return $this->befehlsErgebnisse[$identifier] ?? null;
+    }
+
     /** „Bundle|Player-ID" aus einem PlayerPath. */
     private static function pfad(array $playerPath): string
     {
@@ -201,6 +235,7 @@ final class AirPlayMrp
     {
         $pfad = self::pfad(AirPlayProtobuf::msg($s, 9));
         $p = $this->player[$pfad] ?? [];
+        $p['folge'] = ++$this->folge;
         $zustand = AirPlayProtobuf::int($s, 6);
         if ($zustand !== null) {
             $p['zustand'] = self::ZUSTAND[$zustand] ?? 'unknown';
@@ -256,26 +291,32 @@ final class AirPlayMrp
         $this->player[$pfad] = $p;
     }
 
+    /** Pfad des zuletzt gemeldeten Players, bevorzugt einer, der gerade spielt. */
+    private function juengsterPlayer(): string
+    {
+        $bester = '';
+        $besterRang = [-1, -1];
+        foreach ($this->player as $pfad => $p) {
+            $rang = [($p['zustand'] ?? '') === 'playing' ? 1 : 0, (int)($p['folge'] ?? 0)];
+            if ($rang > $besterRang) {
+                [$bester, $besterRang] = [$pfad, $rang];
+            }
+        }
+        return $bester;
+    }
+
     /**
      * Zustand des aktiven Players (oder des zuletzt spielenden).
      * @return array{zustand:string, app:string, titel:string, interpret:string, album:string, dauer:?float, position:?float, cover:string, coverTyp:string, lautstaerke:?float}
      */
     public function wiedergabe(): array
     {
-        $pfad = $this->aktiverPlayer;
-        if ($pfad === '' || !isset($this->player[$pfad])) {
-            $pfad = '';
-            foreach ($this->player as $k => $p) {
-                if (($p['zustand'] ?? '') === 'playing' || ($this->aktiverClient !== '' && str_starts_with($k, $this->aktiverClient . '|'))) {
-                    $pfad = $k;
-                }
-            }
-        }
+        $pfad = $this->aktiverPlayer !== '' && isset($this->player[$this->aktiverPlayer]) ? $this->aktiverPlayer : $this->juengsterPlayer();
         $p = $this->player[$pfad] ?? [];
         $bundle = explode('|', $pfad)[0];
         return [
             'zustand' => (string)($p['zustand'] ?? 'unknown'),
-            'app' => (string)($p['app'] ?? $this->clients[$bundle] ?? $bundle),
+            'app' => (string)(self::APP_NAMEN[$bundle] ?? $p['app'] ?? $this->clients[$bundle] ?? $bundle),
             'titel' => (string)($p['titel'] ?? ''),
             'interpret' => (string)($p['interpret'] ?? ''),
             'album' => (string)($p['album'] ?? ''),

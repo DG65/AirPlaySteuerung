@@ -5,7 +5,7 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
 
 [English version](README.en.md)
 
-> **Status: Beta 0.2.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
+> **Status: Beta 0.3.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
 > (1. Generation) und HomePod mini geprüft. Apple TV mit tvOS ist nach derselben Vorlage gebaut, aber
 > noch nicht an echter Hardware getestet.
 
@@ -19,6 +19,8 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
   Medienobjekt, per Abfrage im einstellbaren Abstand (Standard 15 s).
 - **Steuerung:** Abspielen, Pause, nächster/vorheriger Titel und Lautstärke — über die Variablen im
   WebFront oder per Skript.
+- **Apple Music starten:** Teilen-Link einer Playlist oder eines Albums einfügen — der HomePod spielt
+  die Titel über sein eigenes Apple-Music-Konto, auf Wunsch zufällig.
 - **Gong:** Zweiklang zum Testen oder als Ankündigung, ganz ohne Audiodatei.
 - **AirPlay-Konfigurator:** Findet HomePods, Apple TVs und andere AirPlay-Empfänger im Netz und zeigt
   in der Spalte „Durchsage", welche Geräte Durchsagen abspielen können. Geräte, die eine PIN-Kopplung
@@ -58,7 +60,15 @@ AIRP_Play(12345); AIRP_Pause(12345); AIRP_Stop(12345);
 AIRP_Next(12345); AIRP_Previous(12345);
 AIRP_SetVolume(12345, 25);    // 0–100 %
 AIRP_Update(12345);           // Anzeige sofort auffrischen
+
+// Apple Music: Teilen-Link einer Playlist/eines Albums oder Song-IDs, true = zufällig
+AIRP_PlayPlaylist(12345, 'https://music.apple.com/de/playlist/…/pl.u-…', true);
 ```
+
+**Apple Music:** Das Modul liest die Titelliste von der öffentlichen Apple-Music-Seite des Links und
+übergibt sie dem HomePod als Warteschlange (höchstens 300 Titel). Gespielt wird eine Kopie: Ändert sich
+die Playlist später, ruft man `AIRP_PlayPlaylist` einfach erneut auf. Der HomePod braucht ein
+Apple-Music-Abo.
 
 Alle Funktionen liefern `true` oder `false`, das Ergebnis steht zusätzlich im Panel „Durchsagen".
 Eine Durchsage kehrt erst zurück, wenn sie fertig ist (Dauer + etwa 1,5 s, mit Fortsetzen + etwa

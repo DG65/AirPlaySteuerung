@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/AirPlayFormular.php';
 require_once __DIR__ . '/../libs/AirPlayAblauf.php';
+require_once __DIR__ . '/../libs/AirPlayAppleMusic.php';
 require_once __DIR__ . '/../libs/AirPlayAudio.php';
 
 // ===========================================================================
@@ -202,6 +203,21 @@ class AirPlayGeraet extends IPSModule
         return $this->befehlAusfuehren('previous');
     }
 
+    /**
+     * Apple-Music-Titel starten: Teilen-Link einer Playlist oder eines Albums (music.apple.com) oder
+     * Song-IDs (durch Komma getrennt). Gespielt wird eine Kopie der Titelliste (höchstens 300 Titel).
+     */
+    public function PlayPlaylist(string $Link, bool $Shuffle): bool
+    {
+        return $this->mitSperre(function () use ($Link, $Shuffle): bool {
+            $ids = AirPlayAppleMusic::songIds($Link);
+            $w = $this->ablauf()->titelliste($ids, $Shuffle);
+            $this->wertSetzen('Zustand', self::ZUSTAND[$w['zustand']] ?? 0);
+            $this->ergebnis(AirPlayText::t('✅ Apple Music started with %s songs: %s', min(count($ids), AirPlayAppleMusic::MAX_TITEL), trim($w['interpret'] . ' – ' . $w['titel'], ' –')));
+            return true;
+        }, 'Playlist could not be started: %s');
+    }
+
     /** Lautstärke 0–100 % am Gerät setzen. */
     public function SetVolume(int $Volume): bool
     {
@@ -227,6 +243,12 @@ class AirPlayGeraet extends IPSModule
     public function UITest(): void
     {
         $this->TestConnection();
+        echo $this->ReadAttributeString('LastResult');
+    }
+
+    public function UIPlaylist(string $Link, bool $Shuffle): void
+    {
+        $this->PlayPlaylist($Link, $Shuffle);
         echo $this->ReadAttributeString('LastResult');
     }
 
@@ -449,6 +471,7 @@ class AirPlayGeraet extends IPSModule
             'Audio format: WAV (PCM) with any sample rate, mono or stereo. The module converts it to 44.1 kHz stereo. MP3 is not supported yet. Maximum length: 120 seconds.',
             'Announcement functions: AIRP_AnnounceMedia(id, mediaID), AIRP_AnnounceMediaEx(id, mediaID, volume), AIRP_AnnounceWave(id, wavBytes), AIRP_AnnounceWaveEx(id, wavBytes, volume), AIRP_PlayChime(id). Volume 0–100, -1 = setting of the instance.',
             'Remote control functions: AIRP_Play(id), AIRP_Pause(id), AIRP_Stop(id), AIRP_Next(id), AIRP_Previous(id), AIRP_SetVolume(id, volume), AIRP_Update(id), AIRP_TestConnection(id). All return true or false; the result is shown in the panel "Announcements".',
+            'Apple Music: AIRP_PlayPlaylist(id, link, shuffle) starts the songs of a playlist or album from its share link (music.apple.com), or a comma-separated list of song IDs. The module reads the song list from the public Apple Music page; the HomePod plays it from its own Apple Music account.',
             'Resume: before an announcement, the module remembers whether something was playing and the volume; afterwards it restores the volume and continues playback. This adds about 3–5 seconds to the call.',
             'Display: the HomePod only reports changes while a connection is open. The module therefore asks at the set interval (a query takes about 2 seconds); changes can appear with that delay.',
             'The device must be reachable from Symcon on TCP port 7000 and on the ports it assigns per session; for the audio, the device sends time requests to UDP ports that Symcon opens for the duration of the announcement. A firewall on the Symcon host must allow that.',
@@ -473,6 +496,12 @@ class AirPlayGeraet extends IPSModule
                 ['type' => 'NumberSpinner', 'name' => 'UpdateInterval', 'caption' => 'Update interval', 'suffix' => 's', 'minimum' => 0, 'maximum' => 3600],
                 ['type' => 'Label', 'caption' => '0 = no automatic update. Values below 5 seconds are raised to 5.'],
                 ['type' => 'Button', 'caption' => '🔄 Update now', 'onClick' => 'AIRP_UIUpdate($id);'],
+                ['type' => 'Label', 'caption' => 'Start Apple Music: paste the share link of a playlist or album (Apple Music app: … → Share → Copy link). The HomePod plays a copy of the song list; later changes to the playlist are not included.'],
+                ['type' => 'RowLayout', 'items' => [
+                    ['type' => 'ValidationTextBox', 'name' => 'PlaylistLink', 'caption' => 'Apple Music link', 'width' => '420px'],
+                    ['type' => 'CheckBox', 'name' => 'PlaylistShuffle', 'caption' => 'Shuffle'],
+                    ['type' => 'Button', 'caption' => '🎵 Play', 'onClick' => 'AIRP_UIPlaylist($id, $PlaylistLink, $PlaylistShuffle);'],
+                ]],
             ])),
         ];
         $durchsagen = [

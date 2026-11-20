@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.2.0 (unveröffentlicht)
+## 0.3.0 (unveröffentlicht)
+
+- Neu: `AIRP_PlayPlaylist(id, link, zufällig)` startet Apple Music auf dem HomePod — Teilen-Link einer Playlist oder
+  eines Albums (music.apple.com) oder Song-IDs; Titelliste wird von der öffentlichen Seite gelesen (höchstens 300).
+  Formular: Feld „Apple-Music-Link" mit „Zufällig" und „🎵 Abspielen".
+- Geändert: App-Anzeige „Apple Music" statt des internen HomePod-Namens „AirMusic"; bei mehreren Playern zählt die
+  jüngste Meldung.
+
+## 0.2.0 (20.11.2026)
 
 - Neu: Anzeige der Wiedergabe über MRP im AirPlay-Tunnel — Zustand, Titel, Interpret, Album, App, Lautstärke
   und Cover als Variablen/Medienobjekt, Abfrage im einstellbaren Abstand (Standard 15 s).
