@@ -85,6 +85,13 @@
   verträgt keinen langen Datenpfad, daher relativ laden.
 - Abgelehnt: Symcons TTS-Modul nachbauen (Kern, nutzt Windows-SAPI; Linux hat keine eingebaute Sprachausgabe).
 
+## Geplante Ansagen (0.6.0)
+
+- `libs/AirPlayZeitplan.php`: AirPlayZeitplan (passt/naechste/faellig, minutengenau, Horizont 8 Tage) und
+  AirPlayPlatzhalter. Timer „Schedule" wird auf die nächste fällige Minute gestellt (Attribut ScheduleNext),
+  RunSchedule spielt fällige Einträge, > 10 min Verspätung wird übersprungen. Gong + Sprache = ein PCM-Strom.
+- `.tools/texte-sammeln.php` nimmt auch Vorlagen ohne Buchstaben auf, wenn sie `%1$s` enthalten.
+
 ## Geräteerkennung (`libs/AirPlayGeraete.php`)
 
 - Aus TXT von `_airplay._tcp`: flags 0x8/0x200 → PIN nötig (LG OLED C9: 0x644), acl=1, act=2, pw/0x80,
@@ -96,7 +103,7 @@
 
 - MRP (Fernsteuerkanal über AirPlay): Zustand vor der Durchsage lesen, danach Musik fortsetzen und
   Lautstärke zurück; Play/Pause, Titel, Cover. Prüfauftrag: Apple-Music-Playlist starten.
-- Geplante Ansagen (Liste im Formular, z. B. stündliche Zeitansage) und WarnHub als Push-Ziel (`AIRP_Say`)
+- WarnHub als Push-Ziel (`AIRP_Say`)
   — WarnHub-Änderung als Anfrage an dessen Sitzung.
 - Wiedergabe per URL (`/play`): MP3/AAC und Internetradio, das Gerät dekodiert selbst.
 - Temperatur/Feuchte HomePod mini über HomeKit-Brücke (Stufe 3).

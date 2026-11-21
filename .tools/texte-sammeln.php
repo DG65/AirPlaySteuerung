@@ -32,7 +32,7 @@ foreach ($dateien as $d) {
         for ($g = 1; $g < count($treffer); $g++) {
             foreach ($treffer[$g] as $t) {
                 $t = stripcslashes(str_replace("\\'", "'", $t));
-                if ($t !== '' && preg_match('/[A-Za-z]{2}/', $t) && !preg_match('/^[a-z_]+$/', $t) && !preg_match('/^(https?:|[A-Z_]+$|AIRP|\{)/', $t)) {
+                if ($t !== '' && (preg_match('/[A-Za-z]{2}/', $t) || preg_match('/%\d\$s/', $t)) && !preg_match('/^[a-z_]+$/', $t) && !preg_match('/^(https?:|[A-Z_]+$|AIRP|\{)/', $t)) {
                     $texte[$t] = true;
                 }
             }

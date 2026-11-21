@@ -13,6 +13,7 @@ require_once $basis . '/libs/AirPlayAudio.php';
 require_once $basis . '/libs/AirPlayGeraete.php';
 require_once $basis . '/libs/AirPlayKlimaDaten.php';
 require_once $basis . '/libs/AirPlayPiper.php';
+require_once $basis . '/libs/AirPlayZeitplan.php';
 
 $fehler = 0;
 $anzahl = 0;
@@ -217,6 +218,28 @@ try {
 } catch (AirPlayFehler $e) {
     pruefe('ohne Server klare Meldung', $e->vorlage === 'no Piper server set');
 }
+
+echo "Geplante Ansagen\n";
+date_default_timezone_set('Europe/Berlin');
+$sa = mktime(14, 0, 0, 11, 21, 2026);   // Samstag, 21.11.2026 14:00
+$stuendlich = ['Active' => true, 'When' => 'hourly', 'Days' => 'all', 'From' => 7, 'To' => 22, 'Text' => 'Es ist {uhrzeit}.'];
+pruefe('stündlich: volle Stunde im Fenster', AirPlayZeitplan::passt($stuendlich, $sa) && !AirPlayZeitplan::passt($stuendlich, $sa + 1800));
+pruefe('stündlich: außerhalb des Fensters still', !AirPlayZeitplan::passt($stuendlich, mktime(23, 0, 0, 11, 21, 2026)) && AirPlayZeitplan::passt($stuendlich, mktime(22, 0, 0, 11, 21, 2026)));
+$nacht = ['From' => 22, 'To' => 6] + $stuendlich;
+pruefe('Fenster über Mitternacht', AirPlayZeitplan::passt($nacht, mktime(3, 0, 0, 11, 21, 2026)) && !AirPlayZeitplan::passt($nacht, $sa));
+pruefe('halbstündlich', AirPlayZeitplan::passt(['When' => 'halfhourly'] + $stuendlich, $sa + 1800));
+$werktags = ['When' => 'daily', 'Time' => '7:30', 'Days' => 'weekdays'] + $stuendlich;
+pruefe('täglich Mo–Fr: Samstag still, nächster Termin Montag 07:30', !AirPlayZeitplan::passt($werktags, mktime(7, 30, 0, 11, 21, 2026))
+    && AirPlayZeitplan::naechste([$werktags], $sa) === mktime(7, 30, 0, 11, 23, 2026));
+pruefe('aus / ohne Text / falsche Uhrzeit zählen nicht', !AirPlayZeitplan::passt(['Active' => false] + $stuendlich, $sa)
+    && !AirPlayZeitplan::passt(['Text' => ' '] + $stuendlich, $sa) && AirPlayZeitplan::uhrzeit('25:00') === null
+    && AirPlayZeitplan::naechste([['When' => 'daily', 'Time' => 'x'] + $stuendlich], $sa) === null);
+pruefe('nächster Termin: laufende Minute nur exakt auf :00', AirPlayZeitplan::naechste([$stuendlich], $sa) === $sa
+    && AirPlayZeitplan::naechste([$stuendlich], $sa + 1) === $sa + 3600);
+pruefe('fällig: nur passende Einträge', count(AirPlayZeitplan::faellig([$stuendlich, $werktags, 'kaputt'], $sa)) === 1);
+$text = AirPlayPlatzhalter::ersetzen('{uhrzeit}|{time}|{Wochentag}|{datum}|{var:42}|{var:7}|{unbekannt}', $sa + 1800, fn (int $id) => $id === 42 ? '21,5 °C' : null);
+pruefe('Platzhalter', $text === '14:30|14:30|Saturday|21 November|21,5 °C|{var:7}|{unbekannt}', $text);
+pruefe('volle Stunde ohne Minuten', AirPlayPlatzhalter::ersetzen('{uhrzeit}', $sa, fn ($i) => null) === "14 o'clock");
 
 exec('php ' . escapeshellarg(__DIR__ . '/texte-sammeln.php'), $aus, $rc);
 pruefe('alle Texte in locale.json', $rc === 0, implode(' ', $aus));

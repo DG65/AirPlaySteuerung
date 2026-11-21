@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.5.0 (unveröffentlicht)
+## 0.6.0 (unveröffentlicht)
+
+- Neu: Geplante Ansagen — Liste im HomePod-Gerät: jede volle oder halbe Stunde in einem Stundenfenster (auch über
+  Mitternacht) oder täglich zu einer Uhrzeit; jeden Tag, Mo–Fr oder Sa–So; eigene Lautstärke, Gong davor. Ein
+  Timer der Instanz weckt genau zur nächsten Ansage (kein Ereignis, kein Minutentakt).
+- Neu: Platzhalter in Ansagetexten, auch für `AIRP_Say`: `{uhrzeit}`/`{time}`, `{wochentag}`/`{weekday}`,
+  `{datum}`/`{date}`, `{var:ID}` (formatierter Wert einer Variable).
+
+## 0.5.0 (21.11.2026)
 
 - Neu: Sprachausgabe — `AIRP_Say(id, text)` und `AIRP_SayEx(id, text, lautstärke)` lesen Text auf dem HomePod vor.
   Die Stimme liefert ein Piper-Server im eigenen Netz (Wyoming-Protokoll, z. B. Docker-Container

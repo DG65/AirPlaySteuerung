@@ -7,6 +7,7 @@ require_once __DIR__ . '/../libs/AirPlayAblauf.php';
 require_once __DIR__ . '/../libs/AirPlayAppleMusic.php';
 require_once __DIR__ . '/../libs/AirPlayAudio.php';
 require_once __DIR__ . '/../libs/AirPlayPiper.php';
+require_once __DIR__ . '/../libs/AirPlayZeitplan.php';
 
 // ===========================================================================
 // AirPlay-Gerät — ein AirPlay-Empfänger (HomePod, Apple TV, Fremdgerät).
@@ -53,10 +54,13 @@ class AirPlayGeraet extends IPSModule
         $this->RegisterPropertyBoolean('ResumeAfterAnnouncement', true);
         $this->RegisterPropertyString('PiperServer', '');
         $this->RegisterPropertyString('PiperVoice', '');
+        $this->RegisterPropertyString('Schedule', '[]');
         $this->RegisterAttributeString('LastResult', '');
         $this->RegisterAttributeString('CoverKey', '');
         $this->RegisterAttributeBoolean('Reachable', true);
         $this->RegisterTimer('Update', 0, 'AIRP_Update($_IPS[\'TARGET\']);');
+        $this->RegisterTimer('Schedule', 0, 'AIRP_RunSchedule($_IPS[\'TARGET\']);');
+        $this->RegisterAttributeInteger('ScheduleNext', 0);
         $this->registerFormAttributes();
     }
 
@@ -77,6 +81,7 @@ class AirPlayGeraet extends IPSModule
         }
         $sekunden = $this->fernsteuerungAn() && $bereit ? max(0, (int)$this->ReadPropertyInteger('UpdateInterval')) : 0;
         $this->SetTimerInterval('Update', $sekunden > 0 ? max(5, $sekunden) * 1000 : 0);
+        $this->zeitplanStellen($bereit ? time() + 1 : null);
         $modell = (string)$this->ReadPropertyString('Model');
         $this->SetSummary(trim($this->host() . ($modell !== '' ? ' · ' . $modell : '')));
     }
@@ -146,15 +151,58 @@ class AirPlayGeraet extends IPSModule
         return $this->SayEx($Text, -1);
     }
 
-    /** Text vorlesen lassen; $Volume 0–100 %, -1 = Einstellung der Instanz. */
+    /** Text vorlesen lassen; $Volume 0–100 %, -1 = Einstellung der Instanz. Platzhalter wie {uhrzeit} werden ersetzt. */
     public function SayEx(string $Text, int $Volume): bool
     {
+        return $this->sprechen($Text, $Volume, false);
+    }
+
+    /** Fällige geplante Ansagen abspielen und den Timer auf die nächste stellen (vom Timer „Schedule" aufgerufen). */
+    public function RunSchedule(): void
+    {
+        $geplant = $this->ReadAttributeInteger('ScheduleNext');
+        if ($geplant <= 0 || time() < $geplant - 5) {
+            $this->zeitplanStellen(time() + 1);   // zu früh oder ohne Plan geweckt: neu planen
+            return;
+        }
+        $this->SetTimerInterval('Schedule', 0);
+        foreach (AirPlayZeitplan::faellig($this->zeitplan(), $geplant) as $e) {
+            if (time() - $geplant > 600) {
+                $this->LogMessage(AirPlayText::t('Scheduled announcement skipped: more than 10 minutes late.'), KL_WARNING);
+                break;
+            }
+            $this->sprechen((string)$e['Text'], (int)($e['Volume'] ?? -1), !empty($e['Chime']), $geplant);
+        }
+        $this->zeitplanStellen(max(time() + 1, $geplant + 60));
+    }
+
+    /** Text mit Platzhaltern sprechen lassen, auf Wunsch mit Gong davor (eine Durchsage, eine Pause der Musik). */
+    private function sprechen(string $text, int $lautstaerke, bool $gong, ?int $zeit = null): bool
+    {
+        $text = AirPlayPlatzhalter::ersetzen($text, $zeit ?? time(), fn (int $id): ?string => @IPS_VariableExists($id) ? (string)GetValueFormatted($id) : null);
         try {
-            $wav = (new AirPlayPiper($this->ReadPropertyString('PiperServer')))->wav($Text, $this->ReadPropertyString('PiperVoice'));
+            $wav = (new AirPlayPiper($this->ReadPropertyString('PiperServer')))->wav($text, $this->ReadPropertyString('PiperVoice'));
+            $audio = AirPlayAudio::wavZuPcm($wav);
         } catch (Throwable $e) {
             return $this->fehler(AirPlayText::t('Speech output failed: %s', AirPlayText::fehler($e)));
         }
-        return $this->AnnounceWaveEx($wav, $Volume);
+        $this->SendDebug('Sprache', $text . sprintf(' (%.1f s)', $audio['sekunden']), 0);
+        return $this->durchsageAbspielen(($gong ? AirPlayAudio::gong() : '') . $audio['pcm'], $lautstaerke);
+    }
+
+    /** @return list<array> Einträge der Liste „Geplante Ansagen" */
+    private function zeitplan(): array
+    {
+        $liste = json_decode($this->ReadPropertyString('Schedule'), true);
+        return is_array($liste) ? array_values(array_filter($liste, 'is_array')) : [];
+    }
+
+    /** Timer „Schedule" auf die nächste fällige Ansage ab $ab stellen; null = aus. */
+    private function zeitplanStellen(?int $ab): void
+    {
+        $naechste = $ab !== null ? AirPlayZeitplan::naechste($this->zeitplan(), $ab) : null;
+        $this->WriteAttributeInteger('ScheduleNext', $naechste ?? 0);
+        $this->SetTimerInterval('Schedule', $naechste !== null ? max(1, $naechste - time()) * 1000 : 0);
     }
 
     /** Kurzer Zweiklang-Gong, z. B. zum Testen. */
@@ -514,6 +562,7 @@ class AirPlayGeraet extends IPSModule
             'Audio format: WAV (PCM) with any sample rate, mono or stereo. The module converts it to 44.1 kHz stereo. MP3 is not supported yet. Maximum length: 120 seconds.',
             'Announcement functions: AIRP_AnnounceMedia(id, mediaID), AIRP_AnnounceMediaEx(id, mediaID, volume), AIRP_AnnounceWave(id, wavBytes), AIRP_AnnounceWaveEx(id, wavBytes, volume), AIRP_PlayChime(id). Volume 0–100, -1 = setting of the instance.',
             'Remote control functions: AIRP_Play(id), AIRP_Pause(id), AIRP_Stop(id), AIRP_Next(id), AIRP_Previous(id), AIRP_SetVolume(id, volume), AIRP_Update(id), AIRP_TestConnection(id). All return true or false; the result is shown in the panel "Announcements".',
+            'Scheduled announcements: list in the panel "Scheduled announcements" — every full or half hour within an hour window, or daily at a set time; every day, Mon–Fri or Sat–Sun. Placeholders such as {time} also work in AIRP_Say.',
             'Speech: AIRP_Say(id, text) and AIRP_SayEx(id, text, volume) read a text aloud (at most 1000 characters). The speech comes from the Piper server set in the panel "Speech output"; the call returns when the announcement has finished.',
             'Apple Music: AIRP_PlayPlaylist(id, link, shuffle) starts the songs of a playlist or album from its share link (music.apple.com), or a comma-separated list of song IDs. The module reads the song list from the public Apple Music page; the HomePod plays it from its own Apple Music account.',
             'Resume: before an announcement, the module remembers whether something was playing and the volume; afterwards it restores the volume and continues playback. This adds about 3–5 seconds to the call.',
@@ -577,7 +626,39 @@ class AirPlayGeraet extends IPSModule
                 ['type' => 'Label', 'caption' => 'Apply changes first, then test. The volume and resume settings of the panel "Announcements" apply.'],
             ],
         ];
-        return $this->airplayFormular([$verbindung, $durchsagen, $sprache], [], [
+        $naechste = $this->ReadAttributeInteger('ScheduleNext');
+        $plan = [
+            'type' => 'ExpansionPanel', 'expanded' => $this->zeitplan() !== [],
+            'caption' => '⏰  Scheduled announcements',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'Spoken via Piper (panel "Speech output"). Placeholders in the text: {uhrzeit} or {time} ("14 o\'clock", "14:30"), {wochentag} or {weekday}, {datum} or {date}, {var:12345} = value of a variable with its unit.'],
+                ['type' => 'List', 'name' => 'Schedule', 'caption' => 'Announcements', 'rowCount' => 5, 'add' => true, 'delete' => true,
+                    'columns' => [
+                        ['caption' => 'Active', 'name' => 'Active', 'width' => '70px', 'add' => true, 'edit' => ['type' => 'CheckBox']],
+                        ['caption' => 'When', 'name' => 'When', 'width' => '190px', 'add' => 'hourly', 'edit' => ['type' => 'Select', 'options' => [
+                            ['caption' => 'Every full hour', 'value' => 'hourly'],
+                            ['caption' => 'Every half hour', 'value' => 'halfhourly'],
+                            ['caption' => 'Daily at the time', 'value' => 'daily'],
+                        ]]],
+                        ['caption' => 'Time (daily)', 'name' => 'Time', 'width' => '110px', 'add' => '07:00', 'edit' => ['type' => 'ValidationTextBox']],
+                        ['caption' => 'Days', 'name' => 'Days', 'width' => '130px', 'add' => 'all', 'edit' => ['type' => 'Select', 'options' => [
+                            ['caption' => 'Every day', 'value' => 'all'],
+                            ['caption' => 'Mon–Fri', 'value' => 'weekdays'],
+                            ['caption' => 'Sat–Sun', 'value' => 'weekend'],
+                        ]]],
+                        ['caption' => 'From', 'name' => 'From', 'width' => '80px', 'add' => 7, 'edit' => ['type' => 'NumberSpinner', 'minimum' => 0, 'maximum' => 23, 'suffix' => 'h']],
+                        ['caption' => 'To', 'name' => 'To', 'width' => '80px', 'add' => 22, 'edit' => ['type' => 'NumberSpinner', 'minimum' => 0, 'maximum' => 23, 'suffix' => 'h']],
+                        ['caption' => 'Text', 'name' => 'Text', 'width' => 'auto', 'add' => AirPlayText::t('It is {time}.'), 'edit' => ['type' => 'ValidationTextBox']],
+                        ['caption' => 'Volume', 'name' => 'Volume', 'width' => '90px', 'add' => -1, 'edit' => ['type' => 'NumberSpinner', 'minimum' => -1, 'maximum' => 100, 'suffix' => '%']],
+                        ['caption' => 'Chime', 'name' => 'Chime', 'width' => '70px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
+                    ]],
+                ['type' => 'Label', 'caption' => '"From/To" limits hourly and half-hourly announcements to these hours (e.g. 7 to 22 h; 22 to 6 h also works). Volume -1 = setting of the panel "Announcements".'],
+                ['type' => 'Label', 'caption' => $naechste > 0
+                    ? AirPlayText::t('⏰ Next scheduled announcement: %s', date('d.m.Y H:i', $naechste))
+                    : AirPlayText::t('ℹ️ No scheduled announcement active.')],
+            ],
+        ];
+        return $this->airplayFormular([$verbindung, $durchsagen, $sprache, $plan], [], [
             ['code' => 102, 'icon' => 'active', 'caption' => 'Ready'],
             ['code' => self::STATUS_ADRESSE_FEHLT, 'icon' => 'inactive', 'caption' => 'Please enter the address of the device'],
             ['code' => self::STATUS_PHP_FEHLT, 'icon' => 'error', 'caption' => 'PHP extension gmp or sodium missing'],

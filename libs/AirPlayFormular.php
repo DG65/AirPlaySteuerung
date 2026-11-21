@@ -44,6 +44,9 @@ trait AirPlayFormular
         '0.5.0' => [
             '• 🗣️ New: speech output — AIRP_Say(id, text) reads text aloud on the HomePod. The voice comes from a Piper server in your own network (free, offline, no account), e.g. as a Docker container. Set it up in the panel "Speech output (Piper)".',
         ],
+        '0.6.0' => [
+            '• ⏰ New: scheduled announcements — e.g. the time every full hour from 7 to 22 h, or a good-morning message on weekdays. Placeholders {time}, {weekday}, {date} and {var:ID} also work in AIRP_Say.',
+        ],
     ];
 
     private static $AIRPLAY_REPO_URL     = 'https://github.com/DG65/AirPlaySteuerung';

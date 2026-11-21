@@ -5,7 +5,7 @@ no Docker, no additional software on the Symcon host.
 
 [Deutsche Version](README.md)
 
-> **Status: beta 0.5.0.** Announcements, resuming afterwards, display and control have been tested on
+> **Status: beta 0.6.0.** Announcements, resuming afterwards, display and control have been tested on
 > HomePod (1st generation) and HomePod mini. Apple TV with tvOS follows the same reference, but has not
 > been tested on real hardware yet.
 
@@ -23,6 +23,8 @@ no Docker, no additional software on the Symcon host.
   its own Apple Music account, optionally shuffled.
 - **Speech output:** `AIRP_Say(id, 'It is 2 pm')` reads text aloud — with a Piper server in your own network
   (free, offline, no account; section below).
+- **Scheduled announcements:** list in the form — every full or half hour (e.g. "It is {time}." from 7 am to
+  10 pm) or daily at a set time, every day, Mon–Fri or Sat–Sun, optionally with a chime first.
 - **Chime:** a two-tone chime for testing or as a lead-in, no audio file needed.
 - **AirPlay-Klima:** temperature and humidity of HomePod mini and HomePod (2nd generation) as real
   variables — through an Apple Home automation that Symcon triggers via its HomeKit bridge at a set interval
@@ -60,6 +62,8 @@ AIRP_AnnounceWave(12345, $wavBytes);
 // Read text aloud (Piper server in the panel "Speech output"), with volume
 AIRP_Say(12345, 'It is ' . date('g A') . '.');
 AIRP_SayEx(12345, 'The washing machine has finished.', 40);
+// Placeholders: {time}, {weekday}, {date}, {var:ID} (value with unit)
+AIRP_Say(12345, 'Good morning, today is {weekday}, {date}. Outside it is {var:23456}.');
 
 AIRP_PlayChime(12345);        // chime
 AIRP_TestConnection(12345);   // pair only, no sound

@@ -5,7 +5,7 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
 
 [English version](README.en.md)
 
-> **Status: Beta 0.5.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
+> **Status: Beta 0.6.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
 > (1. Generation) und HomePod mini geprüft. Apple TV mit tvOS ist nach derselben Vorlage gebaut, aber
 > noch nicht an echter Hardware getestet.
 
@@ -23,6 +23,8 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
   die Titel über sein eigenes Apple-Music-Konto, auf Wunsch zufällig.
 - **Sprachausgabe:** `AIRP_Say(id, 'Es ist 14 Uhr')` liest Text vor — mit einem Piper-Server im eigenen Netz
   (kostenlos, ohne Internet und ohne Konto, Abschnitt unten).
+- **Geplante Ansagen:** Liste im Formular — jede volle oder halbe Stunde (z. B. „Es ist {uhrzeit}." von 7 bis 22 Uhr)
+  oder täglich zu einer Uhrzeit, jeden Tag, Mo–Fr oder Sa–So, auf Wunsch mit Gong davor.
 - **Gong:** Zweiklang zum Testen oder als Ankündigung, ganz ohne Audiodatei.
 - **AirPlay-Klima:** Temperatur und Luftfeuchte von HomePod mini und HomePod (2. Generation) als echte
   Variablen — über eine Apple-Home-Automation, die Symcon über die HomeKit-Brücke im eingestellten Abstand
@@ -60,6 +62,8 @@ AIRP_AnnounceWave(12345, $wavBytes);
 // Text vorlesen (Piper-Server im Panel „Sprachausgabe"), mit Lautstärke
 AIRP_Say(12345, 'Es ist ' . date('G') . ' Uhr.');
 AIRP_SayEx(12345, 'Die Waschmaschine ist fertig.', 40);
+// Platzhalter: {uhrzeit}, {wochentag}, {datum}, {var:ID} (Wert mit Einheit)
+AIRP_Say(12345, 'Guten Morgen, heute ist {wochentag}, der {datum}. Draußen sind {var:23456}.');
 
 AIRP_PlayChime(12345);        // Gong
 AIRP_TestConnection(12345);   // nur koppeln, ohne Ton
