@@ -149,6 +149,10 @@ class AirPlayKlima extends IPSModule
             echo json_encode(['ok' => false, 'text' => 'key missing or wrong']);
             return;
         }
+        // Rohdaten (ohne Schlüssel) fürs Debug-Fenster — Kurzbefehle schreiben Messwerte je nach iOS-Sprache unterschiedlich.
+        $roh = $_GET;
+        unset($roh['key']);
+        $this->SendDebug('WebHook roh', json_encode($roh, JSON_UNESCAPED_UNICODE) . ' | ' . substr((string)file_get_contents('php://input'), 0, 500), 0);
         try {
             $werte = AirPlayKlimaDaten::ausAufruf($_GET, (string)file_get_contents('php://input'));
         } catch (Throwable $e) {
@@ -259,7 +263,10 @@ class AirPlayKlima extends IPSModule
         }
     }
 
-    /** 102, solange Werte im erwarteten Abstand kommen; 202, wenn seit drei Abständen nichts kam; 201 ohne WebHook-Control. */
+    /**
+     * 102, solange Werte im erwarteten Abstand kommen; 202, wenn seit drei Abständen nichts kam; 201 ohne WebHook-Control.
+     * Solange noch kein HomePod gemeldet hat (Einrichtung läuft), nie 202 — das Formular zeigt dann einen Hinweis.
+     */
     private function statusSetzen(): void
     {
         if (IPS_GetInstanceListByModuleID(self::WEBHOOK_GUID) === []) {
@@ -268,7 +275,7 @@ class AirPlayKlima extends IPSModule
         }
         $letzter = $this->ReadAttributeInteger('LastReceived');
         $minuten = (int)$this->ReadPropertyInteger('Interval');
-        $veraltet = $letzter > 0 && $minuten > 0 && time() - $letzter > 3 * max(2, $minuten) * 60;
+        $veraltet = $this->raeume() !== [] && $letzter > 0 && $minuten > 0 && time() - $letzter > 3 * max(2, $minuten) * 60;
         $this->SetStatus($veraltet ? self::STATUS_VERALTET : IS_ACTIVE);
     }
 
@@ -292,7 +299,7 @@ class AirPlayKlima extends IPSModule
         return [
             'Only HomePod mini and HomePod (2nd generation) have temperature and humidity sensors. The first-generation HomePod has none.',
             'For each HomePod, the instance creates "<name> temperature" and "<name> humidity" on the first reception. The name is the one you enter in the shortcut.',
-            'Status "No values for a while" means: nothing arrived for three intervals. Check the Apple Home automation (it needs a home hub; after iOS updates, automations sometimes have to be switched off and on again).',
+            'Status "No values for a while" means: a HomePod has reported before, but nothing arrived for three intervals. Check the Apple Home automation (it needs a home hub; after iOS updates, automations sometimes have to be switched off and on again).',
             'Accepted JSON: {"name": "...", "temperature": ..., "humidity": ...} — German keys (temperatur, feuchte) and values with unit ("21,5 °C", "44 %") work as well, also a list of such objects.',
         ];
     }
@@ -300,6 +307,7 @@ class AirPlayKlima extends IPSModule
     public function GetConfigurationForm()
     {
         $letzter = $this->ReadAttributeInteger('LastReceived');
+        $eingerichtet = $this->raeume() !== [];
         $zeilen = [];
         foreach ($this->raeume() as $name => $r) {
             $zeilen[] = [
@@ -313,7 +321,7 @@ class AirPlayKlima extends IPSModule
         $empfang = [
             'type' => 'ExpansionPanel', 'expanded' => true, 'caption' => '🌡️  Reception & trigger',
             'items' => [
-                ['type' => 'Label', 'caption' => $letzter > 0
+                ['type' => 'Label', 'caption' => $eingerichtet && $letzter > 0
                     ? AirPlayText::t('✅ Last values received: %s', date('d.m.Y H:i', $letzter))
                     : AirPlayText::t('ℹ️ No values received yet — set up the Apple Home automation (panel below).')],
                 ['type' => 'List', 'name' => 'Readings', 'caption' => 'HomePods', 'rowCount' => max(2, count($zeilen)), 'add' => false, 'delete' => false,
@@ -330,7 +338,7 @@ class AirPlayKlima extends IPSModule
             ],
         ];
         $anleitung = [
-            'type' => 'ExpansionPanel', 'expanded' => $letzter === 0, 'caption' => '📱  Set up Apple Home (once)',
+            'type' => 'ExpansionPanel', 'expanded' => !$eingerichtet, 'caption' => '📱  Set up Apple Home (once)',
             'items' => [
                 ['type' => 'Label', 'bold' => true, 'caption' => 'A — Symcon: HomeKit bridge'],
                 ['type' => 'Label', 'caption' => 'A1. Open the instance "HomeKit Bridge". In the list "Devices", click "Add".'],

@@ -35,6 +35,9 @@ trait AirPlayFormular
         '0.4.0' => [
             '• 🌡️ New module "AirPlay-Klima": temperature and humidity of HomePod mini / HomePod (2nd generation) as real variables — via an Apple Home automation, triggered by the HomeKit bridge of Symcon. Step-by-step guide in the form.',
         ],
+        '0.4.2' => [
+            '• AirPlay-Klima: no error status during setup anymore — until a HomePod has sent values, the form shows a hint instead.',
+        ],
     ];
 
     private static $AIRPLAY_REPO_URL     = 'https://github.com/DG65/AirPlaySteuerung';

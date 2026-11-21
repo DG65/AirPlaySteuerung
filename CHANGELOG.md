@@ -1,6 +1,15 @@
 # Changelog
 
-## 0.4.1 (unveröffentlicht)
+## 0.4.2 (unveröffentlicht)
+
+- Geändert: AirPlay-Klima meldet während der Einrichtung keinen Fehler mehr. Solange noch kein HomePod Werte
+  geschickt hat (oder alle Raum-Variablen gelöscht sind), zeigt das Formular den Hinweis „Noch keine Werte
+  empfangen" und die Anleitung bleibt aufgeklappt; „Seit einiger Zeit keine Werte" erst, wenn ein HomePod schon
+  gemeldet hat.
+- Neu: Das Debug-Fenster von AirPlay-Klima zeigt jeden WebHook-Aufruf im Rohformat (ohne Schlüssel) — hilft,
+  wenn ein Messwert nicht ankommt.
+
+## 0.4.1 (21.11.2026)
 
 - Neu: Der WebHook von AirPlay-Klima nimmt die Werte auch als URL-Parameter an
   (`…&name=Schlafzimmer&temperature=…&humidity=…`) — der Kurzbefehl braucht damit nur noch eine Aktion
