@@ -226,7 +226,32 @@
             "The column \"Announcement\" shows which devices can play announcements. Devices that require pairing with a PIN (e.g. many TVs) are listed but cannot be created.": "Die Spalte „Durchsage\" zeigt, welche Geräte Durchsagen abspielen können. Geräte, die eine Kopplung mit PIN verlangen (z. B. viele Fernseher), werden angezeigt, lassen sich aber nicht anlegen.",
             "The search uses the DNS-SD instance of Symcon to look for the service _airplay._tcp. That only reaches the same network segment: behind VLAN boundaries, Docker without host network or VPN the search finds nothing. In that case create an AirPlay device manually and enter the address.": "Die Suche fragt über die DNS-SD-Instanz von Symcon nach dem Dienst _airplay._tcp. Das reicht nur bis zum eigenen Netzsegment: hinter VLAN-Grenzen, in Docker ohne Host-Netz oder über VPN findet die Suche nichts. Dann ein AirPlay-Gerät von Hand anlegen und die Adresse eintragen.",
             "\"✅ yes\" means tested on real hardware. \"⚠️ untested\" means the device offers the required AirPlay 2 pairing, but nobody has tried it yet — feedback is welcome.": "„✅ ja\" heißt: an echter Hardware geprüft. „⚠️ ungeprüft\" heißt: Das Gerät bietet die nötige AirPlay-2-Kopplung, ausprobiert hat es aber noch niemand — Rückmeldungen sind willkommen.",
-            "The configurator recognises existing instances by the device ID, so a changed IP address does not lead to a second entry. Enter the new address in the instance.": "Der Konfigurator erkennt vorhandene Instanzen an der Geräte-ID; eine geänderte IP-Adresse führt also nicht zu einem zweiten Eintrag. Die neue Adresse trägt man in der Instanz ein."
+            "The configurator recognises existing instances by the device ID, so a changed IP address does not lead to a second entry. Enter the new address in the instance.": "Der Konfigurator erkennt vorhandene Instanzen an der Geräte-ID; eine geänderte IP-Adresse führt also nicht zu einem zweiten Eintrag. Die neue Adresse trägt man in der Instanz ein.",
+            "the text is empty": "der Text ist leer",
+            "the text is longer than %s characters": "der Text ist länger als %s Zeichen",
+            "the speech output is too long": "die Sprachausgabe ist zu lang",
+            "Piper reports: %s": "Piper meldet: %s",
+            "Piper returned no audio (unknown voice?)": "Piper hat keinen Ton geliefert (Stimme unbekannt?)",
+            "Piper server %s not reachable: %s": "Piper-Server %s nicht erreichbar: %s",
+            "no Piper server set": "kein Piper-Server eingetragen",
+            "sending to the Piper server failed": "Senden an den Piper-Server fehlgeschlagen",
+            "invalid answer from the Piper server": "ungültige Antwort vom Piper-Server",
+            "Piper server did not answer in time": "der Piper-Server hat nicht rechtzeitig geantwortet",
+            "Piper server closed the connection": "der Piper-Server hat die Verbindung geschlossen",
+            "🗣️  Speech output (Piper)": "🗣️  Sprachausgabe (Piper)",
+            "For AIRP_Say: the text is turned into speech by a Piper server in your own network (free, offline, no account) — e.g. the Docker container rhasspy/wyoming-piper. Guide in the documentation.": "Für AIRP_Say: Den Text spricht ein Piper-Server im eigenen Netz (kostenlos, ohne Internet, ohne Konto) — z. B. der Docker-Container rhasspy/wyoming-piper. Anleitung in der Dokumentation.",
+            "Piper server (host or host:port, port 10200)": "Piper-Server (Host oder Host:Port, Port 10200)",
+            "Voice (empty = default of the server)": "Stimme (leer = Standard des Servers)",
+            "🔍 Show voices": "🔍 Stimmen anzeigen",
+            "Test text": "Testtext",
+            "🗣️ Speak": "🗣️ Sprechen",
+            "Apply changes first, then test. The volume and resume settings of the panel \"Announcements\" apply.": "Erst „Änderungen übernehmen\", dann testen. Es gelten Lautstärke und Fortsetzen aus dem Panel „Durchsagen\".",
+            "Speech output failed: %s": "Sprachausgabe fehlgeschlagen: %s",
+            "The Piper server reports no installed voice.": "Der Piper-Server meldet keine installierte Stimme.",
+            "Installed voices (copy the name into the field \"Voice\"):": "Installierte Stimmen (Namen ins Feld „Stimme\" übernehmen):",
+            "This is a test of the speech output.": "Das ist ein Test der Sprachausgabe.",
+            "Speech: AIRP_Say(id, text) and AIRP_SayEx(id, text, volume) read a text aloud (at most 1000 characters). The speech comes from the Piper server set in the panel \"Speech output\"; the call returns when the announcement has finished.": "Sprache: AIRP_Say(id, text) und AIRP_SayEx(id, text, lautstärke) lesen einen Text vor (höchstens 1000 Zeichen). Die Stimme kommt vom Piper-Server aus dem Panel „Sprachausgabe\"; der Aufruf kehrt zurück, wenn die Durchsage beendet ist.",
+            "• 🗣️ New: speech output — AIRP_Say(id, text) reads text aloud on the HomePod. The voice comes from a Piper server in your own network (free, offline, no account), e.g. as a Docker container. Set it up in the panel \"Speech output (Piper)\".": "• 🗣️ Neu: Sprachausgabe — AIRP_Say(id, text) liest Text auf dem HomePod vor. Die Stimme liefert ein Piper-Server im eigenen Netz (kostenlos, ohne Internet, ohne Konto), z. B. als Docker-Container. Einrichtung im Panel „Sprachausgabe (Piper)\"."
         }
     }
 }

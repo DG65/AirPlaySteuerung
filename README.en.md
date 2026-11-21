@@ -5,7 +5,7 @@ no Docker, no additional software on the Symcon host.
 
 [Deutsche Version](README.md)
 
-> **Status: beta 0.4.3.** Announcements, resuming afterwards, display and control have been tested on
+> **Status: beta 0.5.0.** Announcements, resuming afterwards, display and control have been tested on
 > HomePod (1st generation) and HomePod mini. Apple TV with tvOS follows the same reference, but has not
 > been tested on real hardware yet.
 
@@ -21,6 +21,8 @@ no Docker, no additional software on the Symcon host.
   from scripts.
 - **Start Apple Music:** paste the share link of a playlist or album — the HomePod plays the songs from
   its own Apple Music account, optionally shuffled.
+- **Speech output:** `AIRP_Say(id, 'It is 2 pm')` reads text aloud — with a Piper server in your own network
+  (free, offline, no account; section below).
 - **Chime:** a two-tone chime for testing or as a lead-in, no audio file needed.
 - **AirPlay-Klima:** temperature and humidity of HomePod mini and HomePod (2nd generation) as real
   variables — through an Apple Home automation that Symcon triggers via its HomeKit bridge at a set interval
@@ -55,6 +57,10 @@ AIRP_AnnounceMediaEx(12345, 23456, 40);
 // WAV bytes directly, e.g. from a TTS module
 AIRP_AnnounceWave(12345, $wavBytes);
 
+// Read text aloud (Piper server in the panel "Speech output"), with volume
+AIRP_Say(12345, 'It is ' . date('g A') . '.');
+AIRP_SayEx(12345, 'The washing machine has finished.', 40);
+
 AIRP_PlayChime(12345);        // chime
 AIRP_TestConnection(12345);   // pair only, no sound
 
@@ -77,6 +83,43 @@ returns once it has finished (duration plus about 1.5 s, with resume plus about 
 
 **Audio format:** WAV (PCM), any sample rate, mono or stereo, 8/16/24/32 bit, at most 120 seconds. The
 module converts it to 44.1 kHz stereo itself. MP3/AAC are not supported yet.
+
+## Speech output with Piper
+
+The text for `AIRP_Say` is spoken by [Piper](https://github.com/OHF-Voice/piper1-gpl), a free text-to-speech
+engine with natural-sounding voices that runs locally — no account, no cloud. Piper runs as a separate service on
+the network (Wyoming protocol, TCP 10200), e.g. as a Docker container on a NAS or server; Symcon only sends the text
+and receives the audio. Nothing is installed on the Symcon host.
+
+**Create the container in Portainer:** Stacks → "Add stack", name `piper`, in the web editor:
+
+```yaml
+services:
+  piper:
+    image: rhasspy/wyoming-piper:latest
+    container_name: piper
+    command: --voice en_US-lessac-high
+    ports:
+      - "10200:10200"
+    volumes:
+      - piper-data:/data
+    restart: unless-stopped
+volumes:
+  piper-data:
+```
+
+"Deploy the stack". On first start, the container downloads the voice once (about 100 MB, it needs internet
+briefly). Without Portainer, `docker compose up -d` with the same file is enough.
+
+**In the module:** panel "Speech output (Piper)" → Piper server = IP address of the Docker host → "Apply changes" →
+"🗣️ Speak". "🔍 Show voices" lists the installed voices.
+
+**Voices:** English e.g. `en_US-lessac-high`, `en_GB-alba-medium`; German e.g. `de_DE-thorsten-high`. Voices with
+`medium` or `low` are faster on weak hosts such as a Raspberry Pi. Listen to samples at
+[rhasspy.github.io/piper-samples](https://rhasspy.github.io/piper-samples/).
+
+The container [rhasspy/wyoming-piper](https://github.com/rhasspy/wyoming-piper) is also used by Home Assistant; an
+existing Piper service from there can be entered as well.
 
 ## Temperature and humidity (AirPlay-Klima)
 

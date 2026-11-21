@@ -41,6 +41,9 @@ trait AirPlayFormular
         '0.4.3' => [
             '• AirPlay-Klima: the shortcut now sends the values as JSON (method POST) — this way temperature and humidity both arrive reliably. Please adjust your shortcut as described in the form.',
         ],
+        '0.5.0' => [
+            '• 🗣️ New: speech output — AIRP_Say(id, text) reads text aloud on the HomePod. The voice comes from a Piper server in your own network (free, offline, no account), e.g. as a Docker container. Set it up in the panel "Speech output (Piper)".',
+        ],
     ];
 
     private static $AIRPLAY_REPO_URL     = 'https://github.com/DG65/AirPlaySteuerung';

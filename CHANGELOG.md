@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.4.3 (unveröffentlicht)
+## 0.5.0 (unveröffentlicht)
+
+- Neu: Sprachausgabe — `AIRP_Say(id, text)` und `AIRP_SayEx(id, text, lautstärke)` lesen Text auf dem HomePod vor.
+  Die Stimme liefert ein Piper-Server im eigenen Netz (Wyoming-Protokoll, z. B. Docker-Container
+  rhasspy/wyoming-piper), rein in PHP angebunden, ohne Konto und ohne Cloud. Panel „Sprachausgabe (Piper)" mit
+  Server, Stimme, „Stimmen anzeigen" und Testtext; Anleitung für Portainer in der README.
+
+## 0.4.3 (21.11.2026)
 
 - Geändert: Anleitung für den Kurzbefehl auf POST mit JSON-Anfragetext umgestellt (live erprobt am HomePod mini).
   Werte als URL-Parameter gingen verloren: Der Kurzbefehl setzt „22,4 °C" mit Leerzeichen ein, die URL endete dort.

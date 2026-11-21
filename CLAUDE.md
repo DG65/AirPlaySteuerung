@@ -74,6 +74,17 @@
 - Vorbild: vdamboeck/homepod-ha-sensors (Home Assistant). Alternativen bewertet: Thermostat-Zieltemperatur über die
   Brücke (10–38 °C, 0,1) wäre möglich, für Feuchte gibt es kein beschreibbares Merkmal → WebHook.
 
+## Sprachausgabe mit Piper (0.5.0, 21.11.2026)
+
+- `libs/AirPlayPiper.php`: Wyoming-Protokoll (OHF-Voice/wyoming event.py) — JSON-Zeile {type, data_length,
+  payload_length}, dann Daten, dann Nutzlast. `synthesize {text, voice:{name}}` → audio-start/-chunk (PCM LE)/-stop;
+  `describe` → info (nur installed=true anzeigen). wyoming-piper lädt angeforderte Stimmen selbst nach
+  (handler.py ensure_voice_exists). Ton als WAV → bestehender Durchsage-Weg.
+- Docker `rhasspy/wyoming-piper` (amd64+arm64), `docker_run.sh`: `--uri tcp://0.0.0.0:10200 --data-dir /data` + Argumente.
+- Prüfstand mit `.tools/wyoming-attrappe.php`; Mac-Test mit piper-tts 1.8 + wyoming 1.10.2 (Python 3.9) — espeak-ng
+  verträgt keinen langen Datenpfad, daher relativ laden.
+- Abgelehnt: Symcons TTS-Modul nachbauen (Kern, nutzt Windows-SAPI; Linux hat keine eingebaute Sprachausgabe).
+
 ## Geräteerkennung (`libs/AirPlayGeraete.php`)
 
 - Aus TXT von `_airplay._tcp`: flags 0x8/0x200 → PIN nötig (LG OLED C9: 0x644), acl=1, act=2, pw/0x80,
@@ -85,5 +96,7 @@
 
 - MRP (Fernsteuerkanal über AirPlay): Zustand vor der Durchsage lesen, danach Musik fortsetzen und
   Lautstärke zurück; Play/Pause, Titel, Cover. Prüfauftrag: Apple-Music-Playlist starten.
+- Geplante Ansagen (Liste im Formular, z. B. stündliche Zeitansage) und WarnHub als Push-Ziel (`AIRP_Say`)
+  — WarnHub-Änderung als Anfrage an dessen Sitzung.
 - Wiedergabe per URL (`/play`): MP3/AAC und Internetradio, das Gerät dekodiert selbst.
 - Temperatur/Feuchte HomePod mini über HomeKit-Brücke (Stufe 3).

@@ -12,6 +12,7 @@ require_once $basis . '/libs/AirPlayAblauf.php';
 require_once $basis . '/libs/AirPlayAudio.php';
 require_once $basis . '/libs/AirPlayGeraete.php';
 require_once $basis . '/libs/AirPlayKlimaDaten.php';
+require_once $basis . '/libs/AirPlayPiper.php';
 
 $fehler = 0;
 $anzahl = 0;
@@ -184,6 +185,39 @@ foreach (['AirPlayGeraet', 'AirPlayKonfigurator', 'AirPlayKlima'] as $m) {
     $mj = json_decode((string)file_get_contents("$basis/$m/module.json"), true);
     pruefe("$m: vendor Apple, Präfix gesetzt", $mj['vendor'] === 'Apple' && in_array($mj['prefix'], ['AIRP', 'AIRPC', 'AIRPK'], true));
 }
+echo "Piper (Wyoming)\n";
+pruefe('Adresse host / host:port / [IPv6]:port / IPv6',
+    AirPlayPiper::adresse('nas') === ['nas', 10200] && AirPlayPiper::adresse('192.168.2.5:10300') === ['192.168.2.5', 10300]
+    && AirPlayPiper::adresse('[fe80::1]:10201') === ['fe80::1', 10201] && AirPlayPiper::adresse('fe80::1') === ['fe80::1', 10200]);
+$a = AirPlayAudio::wavZuPcm(AirPlayPiper::wavKopf(22050, 2, 1, str_repeat("\x00\x10", 22050)));
+pruefe('WAV-Kopf aus Piper-PCM lesbar', abs($a['sekunden'] - 1.0) < 0.01, $a['quelle']);
+$attrappe = proc_open(['php', __DIR__ . '/wyoming-attrappe.php', '10299', '3'], [1 => ['pipe', 'w']], $rohre);
+fgets($rohre[1]);
+try {
+    $p = new AirPlayPiper('127.0.0.1:10299', 5.0);
+    $st = $p->stimmen();
+    pruefe('Stimmen (nur installierte)', count($st) === 1 && $st[0]['name'] === 'de_DE-thorsten-medium');
+    $wav = $p->wav("  Es ist 14 Uhr.\n ");
+    $a = AirPlayAudio::wavZuPcm($wav);
+    pruefe('Sprechen: Ton aus mehreren Stücken, Text bereinigt', strlen($wav) === 44 + mb_strlen("Es ist 14 Uhr.") * 100 * 2, sprintf('%d Bytes, %s', strlen($wav), $a['quelle']));
+    try {
+        $p->wav('x', 'falsch');
+        pruefe('Fehlermeldung des Servers', false);
+    } catch (AirPlayFehler $e) {
+        pruefe('Fehlermeldung des Servers', $e->getMessage() === 'Piper reports: unknown voice');
+    }
+} catch (Throwable $e) {
+    pruefe('Piper-Attrappe', false, $e->getMessage());
+} finally {
+    proc_terminate($attrappe);
+}
+try {
+    (new AirPlayPiper(''))->wav('x');
+    pruefe('ohne Server klare Meldung', false);
+} catch (AirPlayFehler $e) {
+    pruefe('ohne Server klare Meldung', $e->vorlage === 'no Piper server set');
+}
+
 exec('php ' . escapeshellarg(__DIR__ . '/texte-sammeln.php'), $aus, $rc);
 pruefe('alle Texte in locale.json', $rc === 0, implode(' ', $aus));
 

@@ -5,7 +5,7 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
 
 [English version](README.en.md)
 
-> **Status: Beta 0.4.3.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
+> **Status: Beta 0.5.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
 > (1. Generation) und HomePod mini geprüft. Apple TV mit tvOS ist nach derselben Vorlage gebaut, aber
 > noch nicht an echter Hardware getestet.
 
@@ -21,6 +21,8 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
   WebFront oder per Skript.
 - **Apple Music starten:** Teilen-Link einer Playlist oder eines Albums einfügen — der HomePod spielt
   die Titel über sein eigenes Apple-Music-Konto, auf Wunsch zufällig.
+- **Sprachausgabe:** `AIRP_Say(id, 'Es ist 14 Uhr')` liest Text vor — mit einem Piper-Server im eigenen Netz
+  (kostenlos, ohne Internet und ohne Konto, Abschnitt unten).
 - **Gong:** Zweiklang zum Testen oder als Ankündigung, ganz ohne Audiodatei.
 - **AirPlay-Klima:** Temperatur und Luftfeuchte von HomePod mini und HomePod (2. Generation) als echte
   Variablen — über eine Apple-Home-Automation, die Symcon über die HomeKit-Brücke im eingestellten Abstand
@@ -55,6 +57,10 @@ AIRP_AnnounceMediaEx(12345, 23456, 40);
 // WAV-Bytes direkt, z. B. aus einem TTS-Modul
 AIRP_AnnounceWave(12345, $wavBytes);
 
+// Text vorlesen (Piper-Server im Panel „Sprachausgabe"), mit Lautstärke
+AIRP_Say(12345, 'Es ist ' . date('G') . ' Uhr.');
+AIRP_SayEx(12345, 'Die Waschmaschine ist fertig.', 40);
+
 AIRP_PlayChime(12345);        // Gong
 AIRP_TestConnection(12345);   // nur koppeln, ohne Ton
 
@@ -79,6 +85,44 @@ Eine Durchsage kehrt erst zurück, wenn sie fertig ist (Dauer + etwa 1,5 s, mit 
 
 **Audioformat:** WAV (PCM), beliebige Abtastrate, Mono oder Stereo, 8/16/24/32 Bit, höchstens
 120 Sekunden. Das Modul rechnet selbst auf 44,1 kHz Stereo um. MP3/AAC werden noch nicht unterstützt.
+
+## Sprachausgabe mit Piper
+
+Den Text für `AIRP_Say` spricht [Piper](https://github.com/OHF-Voice/piper1-gpl), eine freie Sprachausgabe mit
+natürlich klingenden Stimmen, die lokal läuft — kein Konto, keine Cloud. Piper läuft als eigener Dienst im Netz
+(Wyoming-Protokoll, TCP 10200), z. B. als Docker-Container auf einem NAS oder Server; Symcon schickt nur den Text
+hin und bekommt den Ton zurück. Auf dem Symcon-Rechner wird nichts installiert.
+
+**Container in Portainer anlegen:** Stacks → „Add stack", Name `piper`, in den Web-Editor:
+
+```yaml
+services:
+  piper:
+    image: rhasspy/wyoming-piper:latest
+    container_name: piper
+    command: --voice de_DE-thorsten-high
+    ports:
+      - "10200:10200"
+    volumes:
+      - piper-data:/data
+    restart: unless-stopped
+volumes:
+  piper-data:
+```
+
+„Deploy the stack". Beim ersten Start lädt der Container die Stimme einmalig herunter (gut 100 MB, dafür braucht er
+kurz Internet). Ohne Portainer genügt `docker compose up -d` mit derselben Datei.
+
+**Im Modul:** Panel „Sprachausgabe (Piper)" → Piper-Server = IP-Adresse des Docker-Rechners → „Änderungen
+übernehmen" → „🗣️ Sprechen". „🔍 Stimmen anzeigen" listet die installierten Stimmen.
+
+**Stimmen:** Deutsch z. B. `de_DE-thorsten-high` (männlich, beste Qualität), `de_DE-thorsten-medium` (schneller, für
+schwache Rechner wie einen Raspberry Pi), `de_DE-kerstin-low` oder `de_DE-ramona-low` (weiblich). Weitere Stimmen:
+zusätzliche `--voice …` sind nicht nötig — der Container lädt jede Stimme, die das Modul anfordert, beim ersten
+Gebrauch nach. Hörproben: [rhasspy.github.io/piper-samples](https://rhasspy.github.io/piper-samples/).
+
+Den Container [rhasspy/wyoming-piper](https://github.com/rhasspy/wyoming-piper) nutzt auch Home Assistant; ein
+vorhandener Piper-Dienst von dort kann ebenso eingetragen werden.
 
 ## Temperatur und Luftfeuchte (AirPlay-Klima)
 

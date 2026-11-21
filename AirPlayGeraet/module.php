@@ -6,6 +6,7 @@ require_once __DIR__ . '/../libs/AirPlayFormular.php';
 require_once __DIR__ . '/../libs/AirPlayAblauf.php';
 require_once __DIR__ . '/../libs/AirPlayAppleMusic.php';
 require_once __DIR__ . '/../libs/AirPlayAudio.php';
+require_once __DIR__ . '/../libs/AirPlayPiper.php';
 
 // ===========================================================================
 // AirPlay-Gerät — ein AirPlay-Empfänger (HomePod, Apple TV, Fremdgerät).
@@ -50,6 +51,8 @@ class AirPlayGeraet extends IPSModule
         $this->RegisterPropertyBoolean('SetVolume', true);
         $this->RegisterPropertyInteger('Volume', 30);
         $this->RegisterPropertyBoolean('ResumeAfterAnnouncement', true);
+        $this->RegisterPropertyString('PiperServer', '');
+        $this->RegisterPropertyString('PiperVoice', '');
         $this->RegisterAttributeString('LastResult', '');
         $this->RegisterAttributeString('CoverKey', '');
         $this->RegisterAttributeBoolean('Reachable', true);
@@ -135,6 +138,23 @@ class AirPlayGeraet extends IPSModule
         }
         $this->SendDebug('Audio', sprintf('%s, %.1f s', $audio['quelle'], $audio['sekunden']), 0);
         return $this->durchsageAbspielen($audio['pcm'], $Volume);
+    }
+
+    /** Text vorlesen lassen (Piper-Server aus den Einstellungen) mit der eingestellten Lautstärke. */
+    public function Say(string $Text): bool
+    {
+        return $this->SayEx($Text, -1);
+    }
+
+    /** Text vorlesen lassen; $Volume 0–100 %, -1 = Einstellung der Instanz. */
+    public function SayEx(string $Text, int $Volume): bool
+    {
+        try {
+            $wav = (new AirPlayPiper($this->ReadPropertyString('PiperServer')))->wav($Text, $this->ReadPropertyString('PiperVoice'));
+        } catch (Throwable $e) {
+            return $this->fehler(AirPlayText::t('Speech output failed: %s', AirPlayText::fehler($e)));
+        }
+        return $this->AnnounceWaveEx($wav, $Volume);
     }
 
     /** Kurzer Zweiklang-Gong, z. B. zum Testen. */
@@ -244,6 +264,29 @@ class AirPlayGeraet extends IPSModule
     {
         $this->TestConnection();
         echo $this->ReadAttributeString('LastResult');
+    }
+
+    public function UISay(string $Text): void
+    {
+        $this->Say($Text);
+        echo $this->ReadAttributeString('LastResult');
+    }
+
+    /** Stimmen des eingetragenen Piper-Servers anzeigen (Formular-Knopf). */
+    public function UIVoices(string $Server): void
+    {
+        try {
+            $stimmen = (new AirPlayPiper($Server, 10.0))->stimmen();
+        } catch (Throwable $e) {
+            echo AirPlayText::t('❌ %s', AirPlayText::fehler($e));
+            return;
+        }
+        if ($stimmen === []) {
+            echo AirPlayText::t('The Piper server reports no installed voice.');
+            return;
+        }
+        echo AirPlayText::t('Installed voices (copy the name into the field "Voice"):') . "\n\n"
+            . implode("\n", array_map(fn (array $s): string => '• ' . $s['name'] . ($s['sprachen'] !== '' ? ' (' . $s['sprachen'] . ')' : ''), $stimmen));
     }
 
     public function UIPlaylist(string $Link, bool $Shuffle): void
@@ -471,6 +514,7 @@ class AirPlayGeraet extends IPSModule
             'Audio format: WAV (PCM) with any sample rate, mono or stereo. The module converts it to 44.1 kHz stereo. MP3 is not supported yet. Maximum length: 120 seconds.',
             'Announcement functions: AIRP_AnnounceMedia(id, mediaID), AIRP_AnnounceMediaEx(id, mediaID, volume), AIRP_AnnounceWave(id, wavBytes), AIRP_AnnounceWaveEx(id, wavBytes, volume), AIRP_PlayChime(id). Volume 0–100, -1 = setting of the instance.',
             'Remote control functions: AIRP_Play(id), AIRP_Pause(id), AIRP_Stop(id), AIRP_Next(id), AIRP_Previous(id), AIRP_SetVolume(id, volume), AIRP_Update(id), AIRP_TestConnection(id). All return true or false; the result is shown in the panel "Announcements".',
+            'Speech: AIRP_Say(id, text) and AIRP_SayEx(id, text, volume) read a text aloud (at most 1000 characters). The speech comes from the Piper server set in the panel "Speech output"; the call returns when the announcement has finished.',
             'Apple Music: AIRP_PlayPlaylist(id, link, shuffle) starts the songs of a playlist or album from its share link (music.apple.com), or a comma-separated list of song IDs. The module reads the song list from the public Apple Music page; the HomePod plays it from its own Apple Music account.',
             'Resume: before an announcement, the module remembers whether something was playing and the volume; afterwards it restores the volume and continues playback. This adds about 3–5 seconds to the call.',
             'Display: the HomePod only reports changes while a connection is open. The module therefore asks at the set interval (a query takes about 2 seconds); changes can appear with that delay.',
@@ -516,7 +560,24 @@ class AirPlayGeraet extends IPSModule
                 ['type' => 'Label', 'name' => 'LastResult', 'caption' => $letztes !== '' ? $letztes : AirPlayText::t('ℹ️ No announcement played yet.')],
             ],
         ];
-        return $this->airplayFormular([$verbindung, $durchsagen], [], [
+        $sprache = [
+            'type' => 'ExpansionPanel', 'expanded' => $this->ReadPropertyString('PiperServer') === '',
+            'caption' => '🗣️  Speech output (Piper)',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'For AIRP_Say: the text is turned into speech by a Piper server in your own network (free, offline, no account) — e.g. the Docker container rhasspy/wyoming-piper. Guide in the documentation.'],
+                ['type' => 'RowLayout', 'items' => [
+                    ['type' => 'ValidationTextBox', 'name' => 'PiperServer', 'caption' => 'Piper server (host or host:port, port 10200)', 'width' => '320px'],
+                    ['type' => 'ValidationTextBox', 'name' => 'PiperVoice', 'caption' => 'Voice (empty = default of the server)', 'width' => '280px'],
+                    ['type' => 'Button', 'caption' => '🔍 Show voices', 'onClick' => 'AIRP_UIVoices($id, $PiperServer);'],
+                ]],
+                ['type' => 'RowLayout', 'items' => [
+                    ['type' => 'ValidationTextBox', 'name' => 'SayText', 'caption' => 'Test text', 'value' => AirPlayText::t('This is a test of the speech output.'), 'width' => '420px'],
+                    ['type' => 'Button', 'caption' => '🗣️ Speak', 'onClick' => 'AIRP_UISay($id, $SayText);'],
+                ]],
+                ['type' => 'Label', 'caption' => 'Apply changes first, then test. The volume and resume settings of the panel "Announcements" apply.'],
+            ],
+        ];
+        return $this->airplayFormular([$verbindung, $durchsagen, $sprache], [], [
             ['code' => 102, 'icon' => 'active', 'caption' => 'Ready'],
             ['code' => self::STATUS_ADRESSE_FEHLT, 'icon' => 'inactive', 'caption' => 'Please enter the address of the device'],
             ['code' => self::STATUS_PHP_FEHLT, 'icon' => 'error', 'caption' => 'PHP extension gmp or sodium missing'],
