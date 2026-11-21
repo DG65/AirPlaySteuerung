@@ -15,6 +15,7 @@ require_once $basis . '/libs/AirPlayKlimaDaten.php';
 require_once $basis . '/libs/AirPlayPiper.php';
 require_once $basis . '/libs/AirPlayZeitplan.php';
 require_once $basis . '/libs/AirPlayWarteschlange.php';
+require_once $basis . '/libs/AirPlayStimmen.php';
 
 $fehler = 0;
 $anzahl = 0;
@@ -179,13 +180,13 @@ $lib = json_decode((string)file_get_contents($basis . '/library.json'), true);
 $felder = array_keys($lib);
 sort($felder);
 pruefe('library.json genau 8 Felder', $felder === ['author', 'build', 'compatibility', 'date', 'id', 'name', 'url', 'version'] && isset($lib['compatibility']['version']));
-foreach (['AirPlayGeraet', 'AirPlayKonfigurator', 'AirPlayKlima'] as $m) {
+foreach (['AirPlayGeraet', 'AirPlayKonfigurator', 'AirPlayKlima', 'AirPlaySprache'] as $m) {
     $code = (string)file_get_contents("$basis/$m/module.php");
     pruefe("$m: kein IPS_LogMessage", !str_contains($code, 'IPS_LogMessage'));
     pruefe("$m: keine Selbstpersistenz (IPS_SetProperty/ApplyChanges auf die eigene Instanz)", !preg_match('/IPS_(SetProperty|ApplyChanges)\(\$this->InstanceID/', $code));
     pruefe("$m: locale.json = libs/locale.json", file_get_contents("$basis/$m/locale.json") === file_get_contents("$basis/libs/locale.json"));
     $mj = json_decode((string)file_get_contents("$basis/$m/module.json"), true);
-    pruefe("$m: vendor Apple, Präfix gesetzt", $mj['vendor'] === 'Apple' && in_array($mj['prefix'], ['AIRP', 'AIRPC', 'AIRPK'], true));
+    pruefe("$m: vendor Apple, Präfix gesetzt", $mj['vendor'] === 'Apple' && in_array($mj['prefix'], ['AIRP', 'AIRPC', 'AIRPK', 'AIRPS'], true));
 }
 echo "Piper (Wyoming)\n";
 pruefe('Adresse host / host:port / [IPv6]:port / IPv6',
@@ -264,6 +265,32 @@ try {
 pruefe('entnehmen in Reihenfolge', $erster['text'] === 'Text 1' && count($rest) === AirPlayWarteschlange::MAX - 1 && $rest[0]['text'] === 'Text 2');
 pruefe('leere Schlange', AirPlayWarteschlange::entnehmen([]) === [null, []]);
 pruefe('Verfall nach 10 Minuten', !AirPlayWarteschlange::verfallen(['time' => 1000], 1600) && AirPlayWarteschlange::verfallen(['time' => 1000], 1601));
+
+echo "Sprachdienste\n";
+$k1 = AirPlayStimmen::speicherKennung('azure', 'de-DE-KatjaNeural', "Es ist  14 Uhr.\n");
+pruefe('Zwischenspeicher: gleicher Text (bereinigt) = gleiche Kennung, andere Stimme/Dienst = andere',
+    $k1 === AirPlayStimmen::speicherKennung('azure', 'de-DE-KatjaNeural', 'Es ist 14 Uhr.')
+    && $k1 !== AirPlayStimmen::speicherKennung('azure', 'de-DE-ConradNeural', 'Es ist 14 Uhr.')
+    && $k1 !== AirPlayStimmen::speicherKennung('google', 'de-DE-KatjaNeural', 'Es ist 14 Uhr.') && strlen($k1) === 24);
+$fehlt = function (array $e): string {
+    try {
+        AirPlayStimmen::dienst($e)->wav('x');
+        return '';
+    } catch (AirPlayFehler $f) {
+        return $f->vorlage;
+    }
+};
+pruefe('ohne Schlüssel klare Meldung (Azure, ElevenLabs, Google)', $fehlt(['dienst' => 'azure', 'stimme' => '', 'region' => 'westeurope']) === 'no key saved for %s'
+    && $fehlt(['dienst' => 'elevenlabs', 'stimme' => '']) === 'no key saved for %s' && $fehlt(['dienst' => 'google', 'stimme' => '']) === 'no key saved for %s');
+pruefe('Azure-Region wird geprüft', $fehlt(['dienst' => 'azure', 'stimme' => '', 'schluessel' => 'k', 'region' => 'west europe']) === 'Azure region missing or invalid (e.g. germanywestcentral, westeurope)');
+pruefe('ElevenLabs verlangt eine Stimmen-ID (ohne Netz)', str_starts_with($fehlt(['dienst' => 'elevenlabs', 'stimme' => 'Rachel!', 'schluessel' => 'k']), 'ElevenLabs needs a voice ID'));
+pruefe('unbekannter Dienst', $fehlt(['dienst' => 'siri', 'stimme' => '']) === 'unknown speech service %s');
+pruefe('HTTP-Fehler: 401 Azure mit Region, 401 sonst, 429, Text aus JSON',
+    AirPlayStimmen::httpFehler('Azure', 401, '')->vorlage === '%s rejects the key (HTTP %s) — check key and region'
+    && AirPlayStimmen::httpFehler('Google', 403, '')->vorlage === '%s rejects the key (HTTP %s)'
+    && AirPlayStimmen::httpFehler('ElevenLabs', 429, '')->vorlage === '%s: quota or request limit reached (HTTP 429)'
+    && AirPlayStimmen::httpFehler('Google', 400, '{"error":{"message":"API key not valid."}}')->getMessage() === 'Google answers HTTP 400: API key not valid.');
+pruefe('WAV-Erkennung', AirPlayStimmen::istWav(AirPlayPiper::wavKopf(24000, 2, 1, str_repeat("\0", 100))) && !AirPlayStimmen::istWav('{"detail":"x"}'));
 
 exec('php ' . escapeshellarg(__DIR__ . '/texte-sammeln.php'), $aus, $rc);
 pruefe('alle Texte in locale.json', $rc === 0, implode(' ', $aus));

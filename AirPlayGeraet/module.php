@@ -55,6 +55,7 @@ class AirPlayGeraet extends IPSModule
         $this->RegisterPropertyBoolean('ResumeAfterAnnouncement', true);
         $this->RegisterPropertyString('PiperServer', '');
         $this->RegisterPropertyString('PiperVoice', '');
+        $this->RegisterPropertyInteger('SpeechInstance', 0);
         $this->RegisterPropertyString('Schedule', '[]');
         $this->RegisterAttributeString('LastResult', '');
         $this->RegisterAttributeString('CoverKey', '');
@@ -168,8 +169,8 @@ class AirPlayGeraet extends IPSModule
      */
     public function SayAsync(string $Text, int $Volume, bool $Chime): bool
     {
-        if (trim($this->ReadPropertyString('PiperServer')) === '') {
-            return $this->fehler(AirPlayText::t('Speech output failed: %s', AirPlayText::t('no Piper server set')));
+        if (!$this->spracheEingerichtet()) {
+            return $this->fehler(AirPlayText::t('Speech output failed: %s', AirPlayText::t('no speech output selected (panel "Speech output")')));
         }
         $sperre = 'AIRP_Q_' . $this->InstanceID;
         if (!IPS_SemaphoreEnter($sperre, 5000)) {
@@ -249,13 +250,41 @@ class AirPlayGeraet extends IPSModule
     {
         $text = AirPlayPlatzhalter::ersetzen($text, $zeit ?? time(), fn (int $id): ?string => @IPS_VariableExists($id) ? (string)GetValueFormatted($id) : null);
         try {
-            $wav = (new AirPlayPiper($this->ReadPropertyString('PiperServer')))->wav($text, $this->ReadPropertyString('PiperVoice'));
-            $audio = AirPlayAudio::wavZuPcm($wav);
+            $audio = AirPlayAudio::wavZuPcm($this->spracheErzeugen($text));
         } catch (Throwable $e) {
             return $this->fehler(AirPlayText::t('Speech output failed: %s', AirPlayText::fehler($e)));
         }
         $this->SendDebug('Sprache', $text . sprintf(' (%.1f s)', $audio['sekunden']), 0);
         return $this->durchsageAbspielen(($gong ? AirPlayAudio::gong() : '') . $audio['pcm'], $lautstaerke);
+    }
+
+    /** Sprachausgabe-Instanz (AIRPS) gewählt — oder noch die direkte Piper-Einstellung aus 0.5.0–0.7.0? */
+    private function spracheEingerichtet(): bool
+    {
+        return $this->spracheInstanz() > 0 || trim($this->ReadPropertyString('PiperServer')) !== '';
+    }
+
+    private function spracheInstanz(): int
+    {
+        $id = $this->ReadPropertyInteger('SpeechInstance');
+        return $id > 0 && @IPS_InstanceExists($id) ? $id : 0;
+    }
+
+    /** WAV für den Text: über die gewählte Sprachausgabe-Instanz, sonst über den direkt eingetragenen Piper-Server. */
+    private function spracheErzeugen(string $text): string
+    {
+        $instanz = $this->spracheInstanz();
+        if ($instanz > 0 && function_exists('AIRPS_GetSpeech')) {
+            $wav = base64_decode(AIRPS_GetSpeech($instanz, $text), true);
+            if ($wav === false || $wav === '') {
+                throw new AirPlayFehler('%s', AIRPS_GetLastError($instanz));
+            }
+            return $wav;
+        }
+        if (trim($this->ReadPropertyString('PiperServer')) === '') {
+            throw new AirPlayFehler('no speech output selected (panel "Speech output")');
+        }
+        return (new AirPlayPiper($this->ReadPropertyString('PiperServer')))->wav($text, $this->ReadPropertyString('PiperVoice'));
     }
 
     /** @return list<array> Einträge der Liste „Geplante Ansagen" */
@@ -678,12 +707,15 @@ class AirPlayGeraet extends IPSModule
                 ['type' => 'Label', 'name' => 'LastResult', 'caption' => $letztes !== '' ? $letztes : AirPlayText::t('ℹ️ No announcement played yet.')],
             ],
         ];
+        $altesPiper = trim($this->ReadPropertyString('PiperServer')) !== '';
         $sprache = [
-            'type' => 'ExpansionPanel', 'expanded' => $this->ReadPropertyString('PiperServer') === '',
-            'caption' => '🗣️  Speech output (Piper)',
+            'type' => 'ExpansionPanel', 'expanded' => !$this->spracheEingerichtet(),
+            'caption' => '🗣️  Speech output',
             'items' => [
-                ['type' => 'Label', 'caption' => 'For AIRP_Say: the text is turned into speech by a Piper server in your own network (free, offline, no account) — e.g. the Docker container rhasspy/wyoming-piper. Guide in the documentation.'],
-                ['type' => 'RowLayout', 'items' => [
+                ['type' => 'Label', 'caption' => 'For AIRP_Say, AIRP_SayAsync and the scheduled announcements: choose an "AirPlay-Sprachausgabe" instance. It turns the text into speech — with Piper in your own network or an online service (Microsoft Azure, ElevenLabs, Google Cloud) — and serves all AirPlay devices.'],
+                ['type' => 'SelectInstance', 'name' => 'SpeechInstance', 'caption' => 'Speech output instance', 'validModules' => ['{1995F9C5-57BE-4CCB-8980-07D0D4E1867E}'], 'width' => '420px'],
+                ['type' => 'Label', 'visible' => $altesPiper, 'caption' => 'Older direct Piper setting (before version 0.8.0) — used only while no speech output instance is selected. Recommended: create an AirPlay-Sprachausgabe instance with the same server, select it above and clear the field below.'],
+                ['type' => 'RowLayout', 'visible' => $altesPiper, 'items' => [
                     ['type' => 'ValidationTextBox', 'name' => 'PiperServer', 'caption' => 'Piper server (host or host:port, port 10200)', 'width' => '320px'],
                     ['type' => 'ValidationTextBox', 'name' => 'PiperVoice', 'caption' => 'Voice (empty = default of the server)', 'width' => '280px'],
                     ['type' => 'Button', 'caption' => '🔍 Show voices', 'onClick' => 'AIRP_UIVoices($id, $PiperServer);'],

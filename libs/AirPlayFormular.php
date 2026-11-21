@@ -50,6 +50,9 @@ trait AirPlayFormular
         '0.7.0' => [
             '• 📬 New: AIRP_SayAsync(id, text, volume, chime) — announcements without waiting, queued and spoken one after the other, optionally with a chime first. For modules such as WarnHub and for scripts that must not wait for the speaker.',
         ],
+        '0.8.0' => [
+            '• 🌐 New: online voices — the new instance "AirPlay-Sprachausgabe" speaks with Microsoft Azure, ElevenLabs or Google Cloud as well as Piper, stores the key once for all HomePods and keeps recurring texts in a cache. Select it in each AirPlay device (panel "Speech output").',
+        ],
     ];
 
     private static $AIRPLAY_REPO_URL     = 'https://github.com/DG65/AirPlaySteuerung';

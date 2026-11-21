@@ -5,7 +5,7 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
 
 [English version](README.en.md)
 
-> **Status: Beta 0.7.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
+> **Status: Beta 0.8.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
 > (1. Generation) und HomePod mini geprüft. Apple TV mit tvOS ist nach derselben Vorlage gebaut, aber
 > noch nicht an echter Hardware getestet.
 
@@ -21,8 +21,9 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
   WebFront oder per Skript.
 - **Apple Music starten:** Teilen-Link einer Playlist oder eines Albums einfügen — der HomePod spielt
   die Titel über sein eigenes Apple-Music-Konto, auf Wunsch zufällig.
-- **Sprachausgabe:** `AIRP_Say(id, 'Es ist 14 Uhr')` liest Text vor — mit einem Piper-Server im eigenen Netz
-  (kostenlos, ohne Internet und ohne Konto, Abschnitt unten).
+- **Sprachausgabe:** `AIRP_Say(id, 'Es ist 14 Uhr')` liest Text vor. Die Stimme kommt aus der Instanz
+  **AirPlay-Sprachausgabe**: Piper im eigenen Netz (kostenlos, ohne Internet) oder ein Online-Dienst — Microsoft
+  Azure, ElevenLabs, Google Cloud. Gleiche Texte werden zwischengespeichert (Abschnitt unten).
 - **Geplante Ansagen:** Liste im Formular — jede volle oder halbe Stunde (z. B. „Es ist {uhrzeit}." von 7 bis 22 Uhr)
   oder täglich zu einer Uhrzeit, jeden Tag, Mo–Fr oder Sa–So, auf Wunsch mit Gong davor.
 - **Gong:** Zweiklang zum Testen oder als Ankündigung, ganz ohne Audiodatei.
@@ -92,7 +93,23 @@ Eine Durchsage kehrt erst zurück, wenn sie fertig ist (Dauer + etwa 1,5 s, mit 
 **Audioformat:** WAV (PCM), beliebige Abtastrate, Mono oder Stereo, 8/16/24/32 Bit, höchstens
 120 Sekunden. Das Modul rechnet selbst auf 44,1 kHz Stereo um. MP3/AAC werden noch nicht unterstützt.
 
-## Sprachausgabe mit Piper
+## Sprachausgabe
+
+Eine Instanz **AirPlay-Sprachausgabe** anlegen, Dienst wählen und in jedem AirPlay-Gerät im Panel „Sprachausgabe"
+auswählen. Schlüssel werden mit „🔑 Schlüssel speichern" getrennt abgelegt und nicht wieder angezeigt.
+
+| Dienst | Kosten | Einrichtung |
+|---|---|---|
+| **Piper** | kostenlos, ohne Internet | Docker-Container im eigenen Netz (unten) |
+| **Microsoft Azure** | Tarif F0: 500.000 Zeichen im Monat frei | Azure-Portal → Ressource „Speech" → Schlüssel 1 + Region, z. B. `germanywestcentral`; Stimme z. B. `de-DE-KatjaNeural` (Standard) oder `de-DE-ConradNeural` |
+| **ElevenLabs** | etwa 10.000 Zeichen im Monat frei | elevenlabs.io → Profil → API-Schlüssel; Stimmen-ID über „🔍 Stimmen anzeigen" |
+| **Google Cloud** | Freikontingent je Stimmtyp, Abrechnungskonto nötig | Projekt → „Cloud Text-to-Speech API" aktivieren → API-Schlüssel (auf diese API beschränken) |
+
+Die Freikontingente nennen die Anbieter selbst und ändern sie gelegentlich — vor der Einrichtung dort nachsehen.
+Der **Zwischenspeicher** spielt gleiche Texte (gleicher Dienst, gleiche Stimme) aus Symcon ab, statt sie neu zu
+erzeugen: die stündliche Zeitansage kostet so nur am ersten Tag Kontingent und klingt auch ohne Internet.
+
+### Piper
 
 Den Text für `AIRP_Say` spricht [Piper](https://github.com/OHF-Voice/piper1-gpl), eine freie Sprachausgabe mit
 natürlich klingenden Stimmen, die lokal läuft — kein Konto, keine Cloud. Piper läuft als eigener Dienst im Netz

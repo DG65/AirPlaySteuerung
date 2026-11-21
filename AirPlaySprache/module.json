@@ -1,0 +1,14 @@
+{
+  "id": "{1995F9C5-57BE-4CCB-8980-07D0D4E1867E}",
+  "name": "AirPlaySprache",
+  "type": 3,
+  "vendor": "Apple",
+  "aliases": [
+    "AirPlay-Sprachausgabe"
+  ],
+  "url": "https://github.com/DG65/AirPlaySteuerung",
+  "parentRequirements": [],
+  "childRequirements": [],
+  "implemented": [],
+  "prefix": "AIRPS"
+}

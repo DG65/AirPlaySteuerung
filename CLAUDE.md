@@ -99,6 +99,15 @@
   (zweiter Lauf stellt den Timer auf 1 s und kommt wieder). Keine Standardwerte in AIRP_-Funktionen (Symcon-Verhalten
   nicht geprüft).
 
+## Sprachausgabe-Instanz (0.8.0)
+
+- Modul `AirPlaySprache` (AIRPS, `{1995F9C5-57BE-4CCB-8980-07D0D4E1867E}`), Lib `AirPlayStimmen` (Piper, Azure,
+  ElevenLabs, Google; Endpunkte/Köpfe aus den offiziellen Dokus 21.11.2026, im Kopf der Lib zitiert). Alle Dienste
+  liefern WAV (Azure riff-24khz-16bit-mono-pcm, ElevenLabs wav_22050, Google LINEAR16 mit WAV-Kopf).
+- Schlüssel im Attribut `Keys` (Credentials-Regel), Zwischenspeicher = versteckte Ton-Medien `C<sha256[0:24]>`.
+  Gerät holt Ton per `AIRPS_GetSpeech` (Base64); alte Geräte-Property PiperServer bleibt Rückfall.
+- Ungetestet mit echten Schlüsseln: Azure/ElevenLabs/Google (nur 401/400 mit falschem Schlüssel geprüft).
+
 ## Geräteerkennung (`libs/AirPlayGeraete.php`)
 
 - Aus TXT von `_airplay._tcp`: flags 0x8/0x200 → PIN nötig (LG OLED C9: 0x644), acl=1, act=2, pw/0x80,

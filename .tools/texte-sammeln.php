@@ -12,7 +12,7 @@ $str = "'((?:[^'\\\\]|\\\\.)*)'";
 foreach ($dateien as $d) {
     $code = (string)file_get_contents($d);
     $muster = [
-        "/'(?:caption|label|suffix)'\\s*=>\\s*$str/",
+        "/'(?:caption|label|suffix|confirm)'\\s*=>\\s*$str/",
         "/AirPlayText::t\\(\\s*$str/",
         "/AirPlayText::t\\(\\s*\\\$\\w+\\s*===\\s*1\\s*\\?\\s*$str\\s*:\\s*$str/",
         "/AirPlayFehler\\(\\s*$str/",

@@ -5,7 +5,7 @@ no Docker, no additional software on the Symcon host.
 
 [Deutsche Version](README.md)
 
-> **Status: beta 0.7.0.** Announcements, resuming afterwards, display and control have been tested on
+> **Status: beta 0.8.0.** Announcements, resuming afterwards, display and control have been tested on
 > HomePod (1st generation) and HomePod mini. Apple TV with tvOS follows the same reference, but has not
 > been tested on real hardware yet.
 
@@ -21,8 +21,9 @@ no Docker, no additional software on the Symcon host.
   from scripts.
 - **Start Apple Music:** paste the share link of a playlist or album — the HomePod plays the songs from
   its own Apple Music account, optionally shuffled.
-- **Speech output:** `AIRP_Say(id, 'It is 2 pm')` reads text aloud — with a Piper server in your own network
-  (free, offline, no account; section below).
+- **Speech output:** `AIRP_Say(id, 'It is 2 pm')` reads text aloud. The voice comes from the **AirPlay-Sprachausgabe**
+  instance: Piper in your own network (free, offline) or an online service — Microsoft Azure, ElevenLabs, Google
+  Cloud. Identical texts are cached (section below).
 - **Scheduled announcements:** list in the form — every full or half hour (e.g. "It is {time}." from 7 am to
   10 pm) or daily at a set time, every day, Mon–Fri or Sat–Sun, optionally with a chime first.
 - **Chime:** a two-tone chime for testing or as a lead-in, no audio file needed.
@@ -90,7 +91,23 @@ returns once it has finished (duration plus about 1.5 s, with resume plus about 
 **Audio format:** WAV (PCM), any sample rate, mono or stereo, 8/16/24/32 bit, at most 120 seconds. The
 module converts it to 44.1 kHz stereo itself. MP3/AAC are not supported yet.
 
-## Speech output with Piper
+## Speech output
+
+Create an **AirPlay-Sprachausgabe** instance, choose the service and select it in every AirPlay device (panel
+"Speech output"). Keys are stored separately with "🔑 Save key" and never shown again.
+
+| Service | Cost | Setup |
+|---|---|---|
+| **Piper** | free, offline | Docker container in your network (below) |
+| **Microsoft Azure** | tier F0: 500,000 characters per month free | Azure portal → resource "Speech" → Key 1 + region, e.g. `westeurope`; voice e.g. `en-US-AvaNeural` (default is German `de-DE-KatjaNeural`) |
+| **ElevenLabs** | about 10,000 characters per month free | elevenlabs.io → profile → API key; voice ID via "🔍 Show voices" |
+| **Google Cloud** | free tier per voice type, billing account required | project → enable "Cloud Text-to-Speech API" → API key (restrict it to this API); without a voice, a German standard voice is used |
+
+The providers set their free tiers themselves and change them now and then — check before setting up.
+The **cache** plays identical texts (same service, same voice) from Symcon instead of creating them again: the
+hourly time announcement only costs quota on the first day and also works without internet.
+
+### Piper
 
 The text for `AIRP_Say` is spoken by [Piper](https://github.com/OHF-Voice/piper1-gpl), a free text-to-speech
 engine with natural-sounding voices that runs locally — no account, no cloud. Piper runs as a separate service on

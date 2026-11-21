@@ -1,6 +1,18 @@
 # Changelog
 
-## 0.7.0 (unveröffentlicht)
+## 0.8.0 (unveröffentlicht)
+
+- Neu: Modul „AirPlay-Sprachausgabe" (`AIRPS`) — eine Instanz für alle HomePods: Sprachdienst Piper (eigenes Netz),
+  Microsoft Azure, ElevenLabs oder Google Cloud; Schlüssel als Attribut (nicht im Formular, nicht im Export);
+  „Stimmen anzeigen", Probeerzeugung; Zwischenspeicher für gleiche Texte (versteckte Ton-Medien, Höchstzahl
+  einstellbar). Skriptfunktionen `AIRPS_GetSpeech`, `AIRPS_GetLastError`, `AIRPS_ClearCache`.
+- Geändert: Das AirPlay-Gerät wählt im Panel „Sprachausgabe" eine AirPlay-Sprachausgabe-Instanz. Die direkte
+  Piper-Einstellung aus 0.5.0–0.7.0 gilt weiter, solange keine Instanz gewählt ist, und wird nur noch angezeigt,
+  wenn sie ausgefüllt ist.
+- Fix: Die Rückfrage „Neuen Schlüssel erzeugen?" bei AirPlay-Klima war nicht übersetzt (Textprüfung erfasst jetzt
+  auch `confirm`).
+
+## 0.7.0 (21.11.2026)
 
 - Neu: `AIRP_SayAsync(id, text, lautstärke, gong)` — Durchsage einreihen und sofort zurückkehren. Je Gerät eine
   Warteschlange (höchstens 10, ältere als 10 Minuten verfallen), abgearbeitet der Reihe nach vom Timer „Queue";
