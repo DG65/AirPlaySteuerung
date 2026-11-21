@@ -5,7 +5,7 @@ no Docker, no additional software on the Symcon host.
 
 [Deutsche Version](README.md)
 
-> **Status: beta 0.4.0.** Announcements, resuming afterwards, display and control have been tested on
+> **Status: beta 0.4.1.** Announcements, resuming afterwards, display and control have been tested on
 > HomePod (1st generation) and HomePod mini. Apple TV with tvOS follows the same reference, but has not
 > been tested on real hardware yet.
 
@@ -84,10 +84,13 @@ Apple does not hand out the HomePod sensor values over the network, so the route
 
 1. Create an **AirPlay-Klima** instance. Its variable "Trigger measurement" is switched on briefly at the set
    interval (default 10 min).
-2. In Symcon's **HomeKit Bridge** instance, add an accessory of type "Switch" with this variable.
+2. In Symcon's **HomeKit Bridge** instance, add a device of type "Switch" with this variable in the list
+   "Devices".
 3. In the Home app: Automation → "An Accessory is Controlled" → the switch → "Turns On" → "Convert to
-   Shortcut". In it, for each HomePod, "Get the state of" (temperature, humidity) and "Get Contents of URL"
-   (POST, JSON: `name`, `temperature`, `humidity`) with the URL from the form.
+   Shortcut". In it, for each HomePod, "Get the state of" twice (current temperature, current relative
+   humidity) and "Get Contents of URL" once with the URL from the form
+   (`…&name=Bedroom&temperature=<variable>&humidity=<variable>`). The detailed step-by-step guide is in the
+   instance form.
 4. On the first reception, the instance creates "<name> temperature" and "<name> humidity" per HomePod.
 
 The URL contains a secret key. The automation needs a home hub (HomePod or Apple TV). After iOS updates,

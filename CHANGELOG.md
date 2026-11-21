@@ -1,6 +1,15 @@
 # Changelog
 
-## 0.4.0 (unveröffentlicht)
+## 0.4.1 (unveröffentlicht)
+
+- Neu: Der WebHook von AirPlay-Klima nimmt die Werte auch als URL-Parameter an
+  (`…&name=Schlafzimmer&temperature=…&humidity=…`) — der Kurzbefehl braucht damit nur noch eine Aktion
+  „Inhalte von URL abrufen" ohne JSON.
+- Geändert: Anleitung im Formular Schritt für Schritt mit den echten Bezeichnungen der HomeKit-Brücke
+  (Liste „Geräte", Typ „Zwischenstecker", „VariablenID").
+- Fix: Die Liste der HomePods zeigt nur noch Räume, deren Variablen existieren (gelöschte Räume verschwinden).
+
+## 0.4.0 (21.11.2026)
 
 - Neu: Modul „AirPlay-Klima" (`AIRPK`) — Temperatur und Luftfeuchte von HomePod mini / HomePod (2. Gen.) als
   Variablen. Auslöse-Schalter „Messung anstoßen" (über die HomeKit-Brücke in Apple Home), WebHook mit geheimem

@@ -123,6 +123,9 @@ try {
 } catch (AirPlayFehler $e) {
     pruefe('Kein JSON abgelehnt', $e->vorlage === 'the request does not contain JSON');
 }
+$k = AirPlayKlimaDaten::ausAufruf(['key' => 'geheim', 'name' => 'Schlafzimmer', 'temperature' => '21,5 °C', 'humidity' => '44 %'], '');
+pruefe('URL-Parameter statt JSON (Schlüssel ignoriert)', $k === [['name' => 'Schlafzimmer', 'temperatur' => 21.5, 'feuchte' => 44.0]]);
+pruefe('ohne Messwert-Parameter gilt der JSON-Text', AirPlayKlimaDaten::ausAufruf(['key' => 'x'], '{"name":"A","t":1}')[0]['temperatur'] === 1.0);
 pruefe('Kennung aus Namen (Umlaute, Leerzeichen)', AirPlayKlimaDaten::kennung('Küche oben') === 'Kuecheoben' && AirPlayKlimaDaten::kennung('!!!') !== '');
 
 echo "Geräteerkennung (TXT wie im Netz gesehen, Kennungen ersetzt)\n";

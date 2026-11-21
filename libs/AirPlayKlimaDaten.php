@@ -23,6 +23,22 @@ final class AirPlayKlimaDaten
     private const FEUCHTE = ['feuchte', 'luftfeuchte', 'humidity', 'h'];
 
     /**
+     * Werte aus dem Aufruf: zuerst URL-Parameter (?name=…&temperature=…&humidity=…, der einfachste Kurzbefehl),
+     * sonst JSON im Anfragetext.
+     * @param array<string, mixed> $parameter $_GET ohne „key"
+     * @return list<array{name:string, temperatur:?float, feuchte:?float}>
+     */
+    public static function ausAufruf(array $parameter, string $koerper): array
+    {
+        $parameter = array_change_key_case($parameter, CASE_LOWER);
+        unset($parameter['key']);
+        if (self::erster($parameter, self::TEMPERATUR) !== null || self::erster($parameter, self::FEUCHTE) !== null) {
+            return self::lesen((string)json_encode($parameter));
+        }
+        return self::lesen($koerper);
+    }
+
+    /**
      * @return list<array{name:string, temperatur:?float, feuchte:?float}>
      */
     public static function lesen(string $koerper): array

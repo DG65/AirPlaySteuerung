@@ -5,7 +5,7 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
 
 [English version](README.en.md)
 
-> **Status: Beta 0.4.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
+> **Status: Beta 0.4.1.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
 > (1. Generation) und HomePod mini geprüft. Apple TV mit tvOS ist nach derselben Vorlage gebaut, aber
 > noch nicht an echter Hardware getestet.
 
@@ -86,10 +86,13 @@ Apple gibt die Sensorwerte der HomePods nicht über das Netzwerk heraus. Der Weg
 
 1. Instanz **AirPlay-Klima** anlegen. Sie hat eine Variable „Messung anstoßen", die sie im eingestellten
    Abstand (Standard 10 min) kurz einschaltet.
-2. In der Instanz **HomeKit Bridge** von Symcon ein Zubehör vom Typ „Switch" mit dieser Variable anlegen.
+2. In der Instanz **HomeKit Bridge** von Symcon in der Liste „Geräte" ein Gerät vom Typ „Zwischenstecker"
+   mit dieser Variable anlegen.
 3. In der Home-App: Automation → „Ein Gerät wird gesteuert" → der Schalter → „Wird eingeschaltet" →
-   „In Kurzbefehl umwandeln". Darin je HomePod „Status abrufen" (Temperatur, Luftfeuchtigkeit) und
-   „Inhalte von URL abrufen" (POST, JSON: `name`, `temperature`, `humidity`) mit der URL aus dem Formular.
+   „In Kurzbefehl umwandeln". Darin je HomePod zweimal „Status abrufen" (aktuelle Temperatur, aktuelle relative
+   Luftfeuchtigkeit) und einmal „Inhalte von URL abrufen" mit der URL aus dem Formular
+   (`…&name=Schlafzimmer&temperature=<Variable>&humidity=<Variable>`). Die genaue Schritt-für-Schritt-Anleitung
+   steht im Formular der Instanz.
 4. Beim ersten Empfang legt die Instanz je HomePod „<Name> Temperatur" und „<Name> Luftfeuchte" an.
 
 Die URL enthält einen geheimen Schlüssel. Die Automation braucht eine Steuerzentrale (HomePod oder Apple TV).

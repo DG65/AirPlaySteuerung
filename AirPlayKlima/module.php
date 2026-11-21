@@ -122,7 +122,7 @@ class AirPlayKlima extends IPSModule
     /** Zuletzt empfangene Werte je HomePod als JSON. */
     public function GetReadings(): string
     {
-        return $this->ReadAttributeString('Rooms');
+        return (string)json_encode($this->raeume());
     }
 
     public function UITrigger(): void
@@ -150,14 +150,14 @@ class AirPlayKlima extends IPSModule
             return;
         }
         try {
-            $werte = AirPlayKlimaDaten::lesen((string)file_get_contents('php://input'));
+            $werte = AirPlayKlimaDaten::ausAufruf($_GET, (string)file_get_contents('php://input'));
         } catch (Throwable $e) {
             http_response_code(400);
             echo json_encode(['ok' => false, 'text' => $e->getMessage()]);
             $this->SendDebug('WebHook', 'abgelehnt: ' . $e->getMessage(), 0);
             return;
         }
-        $raeume = json_decode($this->ReadAttributeString('Rooms'), true) ?: [];
+        $raeume = $this->raeume();
         foreach ($werte as $w) {
             $kennung = AirPlayKlimaDaten::kennung($w['name']);
             if ($w['temperatur'] !== null) {
@@ -175,6 +175,19 @@ class AirPlayKlima extends IPSModule
         $this->statusSetzen();
         $this->SendDebug('WebHook', json_encode($werte), 0);
         echo json_encode(['ok' => true, 'received' => count($werte)]);
+    }
+
+    /**
+     * Zuletzt empfangene Werte je HomePod — nur Räume, deren Variablen noch existieren
+     * (löscht der Nutzer die Variablen eines Raums, verschwindet er auch aus der Liste).
+     */
+    private function raeume(): array
+    {
+        $raeume = json_decode($this->ReadAttributeString('Rooms'), true) ?: [];
+        return array_filter($raeume, function ($r, $name): bool {
+            $k = AirPlayKlimaDaten::kennung((string)$name);
+            return @$this->GetIDForIdent('T' . $k) !== false || @$this->GetIDForIdent('H' . $k) !== false;
+        }, ARRAY_FILTER_USE_BOTH);
     }
 
     /** Variable anlegen, falls sie fehlt (Darstellung und Position gehören danach dem Nutzer), und Wert setzen. */
@@ -288,7 +301,7 @@ class AirPlayKlima extends IPSModule
     {
         $letzter = $this->ReadAttributeInteger('LastReceived');
         $zeilen = [];
-        foreach (json_decode($this->ReadAttributeString('Rooms'), true) ?: [] as $name => $r) {
+        foreach ($this->raeume() as $name => $r) {
             $zeilen[] = [
                 'name' => (string)$name,
                 'temperatur' => $r['temperatur'] !== null ? number_format((float)$r['temperatur'], 1, ',', '') . ' °C' : '–',
@@ -319,13 +332,22 @@ class AirPlayKlima extends IPSModule
         $anleitung = [
             'type' => 'ExpansionPanel', 'expanded' => $letzter === 0, 'caption' => '📱  Set up Apple Home (once)',
             'items' => [
-                ['type' => 'Label', 'caption' => AirPlayText::t('Step 1 — HomeKit bridge: in the instance "HomeKit Bridge", add an accessory of type "Switch" and select the variable "Trigger measurement" (ID %s). Then it appears in the Home app.', $trigger !== false ? $trigger : '–')],
-                ['type' => 'Label', 'caption' => 'Step 2 — Home app (iPhone/iPad): Automation → + → "An Accessory is Controlled" → choose the switch → "Turns On" → Next. Scroll down → "Convert to Shortcut".'],
-                ['type' => 'Label', 'caption' => 'Step 3 — In the shortcut, for each HomePod: "Get the state of" → the HomePod\'s temperature, again for its humidity.'],
-                ['type' => 'Label', 'caption' => 'Step 4 — For each HomePod: "Get Contents of URL" with the URL below, method POST, request body JSON with the fields name (text, e.g. the room), temperature and humidity (each the matching variable from step 3).'],
-                ['type' => 'ValidationTextBox', 'name' => 'HookUrl', 'caption' => 'URL for the shortcut', 'value' => $this->hookUrl(), 'width' => '640px'],
-                ['type' => 'Label', 'caption' => 'The URL contains a secret key — treat it like a password. If the IP address shown is wrong, use the address under which the iPhone and the home hub reach Symcon (port 3777).'],
-                ['type' => 'Label', 'caption' => 'Step 5 — Done, enable the automation. Test: "📡 Trigger measurement now", wait a few seconds, reopen this form.'],
+                ['type' => 'Label', 'bold' => true, 'caption' => 'A — Symcon: HomeKit bridge'],
+                ['type' => 'Label', 'caption' => 'A1. Open the instance "HomeKit Bridge". In the list "Devices", click "Add".'],
+                ['type' => 'Label', 'caption' => AirPlayText::t('A2. Name: "Klima-Messung". Type: "Switch". VariableID: the variable "Trigger measurement" (ID %s) below this instance. Confirm with OK.', $trigger !== false ? $trigger : '–')],
+                ['type' => 'Label', 'caption' => 'A3. The column "Status" of the new row must show "OK". Then click "Apply changes". After a short while, "Klima-Messung" appears in the Home app as a switch.'],
+                ['type' => 'Label', 'bold' => true, 'caption' => 'B — iPhone/iPad: Home app'],
+                ['type' => 'Label', 'caption' => 'B1. Tab "Automation" → "+" → "An Accessory is Controlled" → select "Klima-Messung" → Next → "Turns On" → Next.'],
+                ['type' => 'Label', 'caption' => 'B2. On the page for scenes and accessories, scroll to the very bottom → "Convert to Shortcut". (Names can differ slightly between iOS versions — if something looks different, send a screenshot.)'],
+                ['type' => 'Label', 'bold' => true, 'caption' => 'C — iPhone/iPad: the shortcut'],
+                ['type' => 'Label', 'caption' => 'C1. Remove any action the Home app put in. Add the action "Get the state of" (search: "state"). Tap "Accessory" → your HomePod mini → "Current Temperature".'],
+                ['type' => 'Label', 'caption' => 'C2. Add "Get the state of" a second time: the same HomePod → "Current Relative Humidity".'],
+                ['type' => 'Label', 'caption' => 'C3. Add the action "Get Contents of URL". Tap the URL field and paste the URL from the field below. Directly after "temperature=" insert the variable from C1 (keyboard bar → variable "State"), then type "&humidity=" and insert the variable from C2. Leave the method at GET.'],
+                ['type' => 'ValidationTextBox', 'name' => 'HookUrl', 'caption' => 'URL for the shortcut (copy)', 'value' => $this->hookUrl() . '&name=Schlafzimmer&temperature=', 'width' => '720px'],
+                ['type' => 'Label', 'caption' => 'Change "Schlafzimmer" to the room name you want (letters only, no spaces). The URL contains a secret key — treat it like a password. If the IP address is wrong, use the one under which iPhone and home hub reach Symcon (port 3777).'],
+                ['type' => 'Label', 'caption' => 'C4. Tap "Done" and make sure the automation is switched on. More HomePods: repeat C1 to C3 in the same shortcut with another name.'],
+                ['type' => 'Label', 'bold' => true, 'caption' => 'D — Test'],
+                ['type' => 'Label', 'caption' => 'D1. Click "📡 Trigger measurement now" in the panel above, wait about 10 seconds and reopen this form: the HomePod appears in the list, and its variables are created.'],
                 ['type' => 'Button', 'caption' => '🔑 Create new key', 'onClick' => 'AIRPK_UINewKey($id);', 'confirm' => 'The old URL stops working. Create a new key?'],
             ],
         ];
