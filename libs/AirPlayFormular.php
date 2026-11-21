@@ -38,6 +38,9 @@ trait AirPlayFormular
         '0.4.2' => [
             '• AirPlay-Klima: no error status during setup anymore — until a HomePod has sent values, the form shows a hint instead.',
         ],
+        '0.4.3' => [
+            '• AirPlay-Klima: the shortcut now sends the values as JSON (method POST) — this way temperature and humidity both arrive reliably. Please adjust your shortcut as described in the form.',
+        ],
     ];
 
     private static $AIRPLAY_REPO_URL     = 'https://github.com/DG65/AirPlaySteuerung';

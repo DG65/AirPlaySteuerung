@@ -30,7 +30,7 @@ final class AirPlayKlimaDaten
      */
     public static function ausAufruf(array $parameter, string $koerper): array
     {
-        $parameter = array_change_key_case($parameter, CASE_LOWER);
+        $parameter = self::schluesselGlaetten($parameter);
         unset($parameter['key']);
         if (self::erster($parameter, self::TEMPERATUR) !== null || self::erster($parameter, self::FEUCHTE) !== null) {
             return self::lesen((string)json_encode($parameter));
@@ -53,7 +53,7 @@ final class AirPlayKlimaDaten
             if (!is_array($e)) {
                 continue;
             }
-            $e = array_change_key_case($e, CASE_LOWER);
+            $e = self::schluesselGlaetten($e);
             $name = trim((string)self::erster($e, self::NAMEN));
             $t = self::zahl(self::erster($e, self::TEMPERATUR));
             $h = self::zahl(self::erster($e, self::FEUCHTE));
@@ -70,6 +70,19 @@ final class AirPlayKlimaDaten
         }
         if ($out === []) {
             throw new AirPlayFehler('no readings found (expected name plus temperature and/or humidity)');
+        }
+        return $out;
+    }
+
+    /**
+     * Schlüssel klein, ohne Leerzeichen und ohne angehängtes „=" oder „:" — im Kurzbefehl-Editor tippt man
+     * schnell „temperature =" statt „temperature" (live 21.11.2026).
+     */
+    private static function schluesselGlaetten(array $e): array
+    {
+        $out = [];
+        foreach ($e as $k => $v) {
+            $out[strtolower(rtrim(trim((string)$k), " \t=:"))] = $v;
         }
         return $out;
     }

@@ -5,7 +5,7 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
 
 [English version](README.en.md)
 
-> **Status: Beta 0.4.2.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
+> **Status: Beta 0.4.3.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
 > (1. Generation) und HomePod mini geprüft. Apple TV mit tvOS ist nach derselben Vorlage gebaut, aber
 > noch nicht an echter Hardware getestet.
 
@@ -89,10 +89,12 @@ Apple gibt die Sensorwerte der HomePods nicht über das Netzwerk heraus. Der Weg
 2. In der Instanz **HomeKit Bridge** von Symcon in der Liste „Geräte" ein Gerät vom Typ „Zwischenstecker"
    mit dieser Variable anlegen.
 3. In der Home-App: Automation → „Ein Gerät wird gesteuert" → der Schalter → „Wird eingeschaltet" →
-   „In Kurzbefehl umwandeln". Darin je HomePod zweimal „Status abrufen" (aktuelle Temperatur, aktuelle relative
-   Luftfeuchtigkeit) und einmal „Inhalte von URL abrufen" mit der URL aus dem Formular
-   (`…&name=Schlafzimmer&temperature=<Variable>&humidity=<Variable>`). Die genaue Schritt-für-Schritt-Anleitung
-   steht im Formular der Instanz.
+   „In Kurzbefehl umwandeln". Darin je HomePod zweimal den Status abrufen (Temperatursensor → Aktuelle
+   Temperatur, Feuchtigkeitssensor → Akt. relative Luftfeuchtigkeit) und einmal „Inhalte von URL abrufen" mit der
+   URL aus dem Formular, Methode **POST**, Anfragetext **JSON** mit den Feldern `name`, `temperature` und
+   `humidity`. Die genaue Schritt-für-Schritt-Anleitung steht im Formular der Instanz.
+   Die Werte nicht an die URL anhängen: Der Kurzbefehl setzt sie mit Leerzeichen ein („22,4 °C"), die URL endet
+   dort und die Luftfeuchte geht verloren.
 4. Beim ersten Empfang legt die Instanz je HomePod „<Name> Temperatur" und „<Name> Luftfeuchte" an.
 
 Die URL enthält einen geheimen Schlüssel. Die Automation braucht eine Steuerzentrale (HomePod oder Apple TV).

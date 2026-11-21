@@ -5,7 +5,7 @@ no Docker, no additional software on the Symcon host.
 
 [Deutsche Version](README.md)
 
-> **Status: beta 0.4.2.** Announcements, resuming afterwards, display and control have been tested on
+> **Status: beta 0.4.3.** Announcements, resuming afterwards, display and control have been tested on
 > HomePod (1st generation) and HomePod mini. Apple TV with tvOS follows the same reference, but has not
 > been tested on real hardware yet.
 
@@ -87,10 +87,12 @@ Apple does not hand out the HomePod sensor values over the network, so the route
 2. In Symcon's **HomeKit Bridge** instance, add a device of type "Switch" with this variable in the list
    "Devices".
 3. In the Home app: Automation → "An Accessory is Controlled" → the switch → "Turns On" → "Convert to
-   Shortcut". In it, for each HomePod, "Get the state of" twice (current temperature, current relative
-   humidity) and "Get Contents of URL" once with the URL from the form
-   (`…&name=Bedroom&temperature=<variable>&humidity=<variable>`). The detailed step-by-step guide is in the
-   instance form.
+   Shortcut". In it, for each HomePod, read the state twice (Temperature Sensor → Current Temperature, Humidity
+   Sensor → Current Relative Humidity) and "Get Contents of URL" once with the URL from the form, method
+   **POST**, request body **JSON** with the fields `name`, `temperature` and `humidity`. The detailed
+   step-by-step guide is in the instance form.
+   Do not append the values to the URL: the shortcut inserts them with a space ("22.4 °C"), the URL ends there
+   and the humidity is lost.
 4. On the first reception, the instance creates "<name> temperature" and "<name> humidity" per HomePod.
 
 The URL contains a secret key. The automation needs a home hub (HomePod or Apple TV). After iOS updates,

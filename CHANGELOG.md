@@ -1,6 +1,15 @@
 # Changelog
 
-## 0.4.2 (unveröffentlicht)
+## 0.4.3 (unveröffentlicht)
+
+- Geändert: Anleitung für den Kurzbefehl auf POST mit JSON-Anfragetext umgestellt (live erprobt am HomePod mini).
+  Werte als URL-Parameter gingen verloren: Der Kurzbefehl setzt „22,4 °C" mit Leerzeichen ein, die URL endete dort.
+  Das URL-Feld im Formular enthält jetzt nur noch die Adresse mit Schlüssel. Neuer Schritt D2: Fehlersuche über das
+  Debug-Fenster.
+- Fix: Schlüssel im JSON werden ohne Leerzeichen und angehängtes „=“/„:“ gelesen (`"temperature ="` zählt
+  wie `"temperature"`).
+
+## 0.4.2 (21.11.2026)
 
 - Geändert: AirPlay-Klima meldet während der Einrichtung keinen Fehler mehr. Solange noch kein HomePod Werte
   geschickt hat (oder alle Raum-Variablen gelöscht sind), zeigt das Formular den Hinweis „Noch keine Werte
