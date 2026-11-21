@@ -5,7 +5,7 @@ no Docker, no additional software on the Symcon host.
 
 [Deutsche Version](README.md)
 
-> **Status: beta 0.6.0.** Announcements, resuming afterwards, display and control have been tested on
+> **Status: beta 0.7.0.** Announcements, resuming afterwards, display and control have been tested on
 > HomePod (1st generation) and HomePod mini. Apple TV with tvOS follows the same reference, but has not
 > been tested on real hardware yet.
 
@@ -62,6 +62,8 @@ AIRP_AnnounceWave(12345, $wavBytes);
 // Read text aloud (Piper server in the panel "Speech output"), with volume
 AIRP_Say(12345, 'It is ' . date('g A') . '.');
 AIRP_SayEx(12345, 'The washing machine has finished.', 40);
+// without waiting: queue and return at once, the instance speaks one after the other (true = chime first)
+AIRP_SayAsync(12345, 'The front door is open.', -1, true);
 // Placeholders: {time}, {weekday}, {date}, {var:ID} (value with unit)
 AIRP_Say(12345, 'Good morning, today is {weekday}, {date}. Outside it is {var:23456}.');
 

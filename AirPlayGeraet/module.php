@@ -8,6 +8,7 @@ require_once __DIR__ . '/../libs/AirPlayAppleMusic.php';
 require_once __DIR__ . '/../libs/AirPlayAudio.php';
 require_once __DIR__ . '/../libs/AirPlayPiper.php';
 require_once __DIR__ . '/../libs/AirPlayZeitplan.php';
+require_once __DIR__ . '/../libs/AirPlayWarteschlange.php';
 
 // ===========================================================================
 // AirPlay-Gerät — ein AirPlay-Empfänger (HomePod, Apple TV, Fremdgerät).
@@ -61,6 +62,8 @@ class AirPlayGeraet extends IPSModule
         $this->RegisterTimer('Update', 0, 'AIRP_Update($_IPS[\'TARGET\']);');
         $this->RegisterTimer('Schedule', 0, 'AIRP_RunSchedule($_IPS[\'TARGET\']);');
         $this->RegisterAttributeInteger('ScheduleNext', 0);
+        $this->RegisterTimer('Queue', 0, 'AIRP_RunQueue($_IPS[\'TARGET\']);');
+        $this->RegisterAttributeString('Queue', '[]');
         $this->registerFormAttributes();
     }
 
@@ -155,6 +158,71 @@ class AirPlayGeraet extends IPSModule
     public function SayEx(string $Text, int $Volume): bool
     {
         return $this->sprechen($Text, $Volume, false);
+    }
+
+    /**
+     * Text vorlesen lassen, ohne zu warten: reiht die Durchsage ein und kehrt sofort zurück. Die Instanz spricht
+     * eingereihte Durchsagen der Reihe nach (für Module wie WarnHub, deren Ablauf nicht auf den Lautsprecher
+     * warten soll). false, wenn der Text leer ist, kein Piper-Server eingetragen ist oder schon 10 warten.
+     * $Volume 0–100 %, -1 = Einstellung der Instanz; $Chime = Gong davor.
+     */
+    public function SayAsync(string $Text, int $Volume, bool $Chime): bool
+    {
+        if (trim($this->ReadPropertyString('PiperServer')) === '') {
+            return $this->fehler(AirPlayText::t('Speech output failed: %s', AirPlayText::t('no Piper server set')));
+        }
+        $sperre = 'AIRP_Q_' . $this->InstanceID;
+        if (!IPS_SemaphoreEnter($sperre, 5000)) {
+            return $this->fehler(AirPlayText::t('The announcement queue is busy, please try again.'));
+        }
+        try {
+            $schlange = json_decode($this->ReadAttributeString('Queue'), true) ?: [];
+            $this->WriteAttributeString('Queue', (string)json_encode(AirPlayWarteschlange::anhaengen($schlange, $Text, $Volume, $Chime, time())));
+        } catch (Throwable $e) {
+            return $this->fehler(AirPlayText::t('Announcement not queued: %s', AirPlayText::fehler($e)));
+        } finally {
+            IPS_SemaphoreLeave($sperre);
+        }
+        $this->SetTimerInterval('Queue', 100);
+        return true;
+    }
+
+    /** Eingereihte Durchsagen der Reihe nach sprechen (vom Timer „Queue" aufgerufen). */
+    public function RunQueue(): void
+    {
+        $lauf = 'AIRP_QRUN_' . $this->InstanceID;
+        if (!IPS_SemaphoreEnter($lauf, 0)) {
+            $this->SetTimerInterval('Queue', 1000);   // ein anderer Lauf arbeitet noch — später noch einmal nachsehen
+            return;
+        }
+        $this->SetTimerInterval('Queue', 0);
+        try {
+            while (($eintrag = $this->ausSchlange()) !== null) {
+                if (AirPlayWarteschlange::verfallen($eintrag, time())) {
+                    $this->LogMessage(AirPlayText::t('Queued announcement skipped: more than 10 minutes old.'), KL_WARNING);
+                    continue;
+                }
+                $this->sprechen((string)$eintrag['text'], (int)$eintrag['volume'], (bool)$eintrag['chime'], (int)$eintrag['time']);
+            }
+        } finally {
+            IPS_SemaphoreLeave($lauf);
+        }
+    }
+
+    private function ausSchlange(): ?array
+    {
+        $sperre = 'AIRP_Q_' . $this->InstanceID;
+        if (!IPS_SemaphoreEnter($sperre, 5000)) {
+            $this->SetTimerInterval('Queue', 1000);
+            return null;
+        }
+        try {
+            [$eintrag, $rest] = AirPlayWarteschlange::entnehmen(json_decode($this->ReadAttributeString('Queue'), true) ?: []);
+            $this->WriteAttributeString('Queue', (string)json_encode($rest));
+            return $eintrag;
+        } finally {
+            IPS_SemaphoreLeave($sperre);
+        }
     }
 
     /** Fällige geplante Ansagen abspielen und den Timer auf die nächste stellen (vom Timer „Schedule" aufgerufen). */
@@ -562,6 +630,7 @@ class AirPlayGeraet extends IPSModule
             'Audio format: WAV (PCM) with any sample rate, mono or stereo. The module converts it to 44.1 kHz stereo. MP3 is not supported yet. Maximum length: 120 seconds.',
             'Announcement functions: AIRP_AnnounceMedia(id, mediaID), AIRP_AnnounceMediaEx(id, mediaID, volume), AIRP_AnnounceWave(id, wavBytes), AIRP_AnnounceWaveEx(id, wavBytes, volume), AIRP_PlayChime(id). Volume 0–100, -1 = setting of the instance.',
             'Remote control functions: AIRP_Play(id), AIRP_Pause(id), AIRP_Stop(id), AIRP_Next(id), AIRP_Previous(id), AIRP_SetVolume(id, volume), AIRP_Update(id), AIRP_TestConnection(id). All return true or false; the result is shown in the panel "Announcements".',
+            'Without waiting: AIRP_SayAsync(id, text, volume, chime) queues the announcement and returns at once; the instance speaks queued announcements one after the other (at most 10 waiting, older than 10 minutes are skipped). chime = true plays the chime first.',
             'Scheduled announcements: list in the panel "Scheduled announcements" — every full or half hour within an hour window, or daily at a set time; every day, Mon–Fri or Sat–Sun. Placeholders such as {time} also work in AIRP_Say.',
             'Speech: AIRP_Say(id, text) and AIRP_SayEx(id, text, volume) read a text aloud (at most 1000 characters). The speech comes from the Piper server set in the panel "Speech output"; the call returns when the announcement has finished.',
             'Apple Music: AIRP_PlayPlaylist(id, link, shuffle) starts the songs of a playlist or album from its share link (music.apple.com), or a comma-separated list of song IDs. The module reads the song list from the public Apple Music page; the HomePod plays it from its own Apple Music account.',

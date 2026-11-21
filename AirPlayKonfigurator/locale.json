@@ -297,7 +297,13 @@
             "⏰ Next scheduled announcement: %s": "⏰ Nächste geplante Ansage: %s",
             "ℹ️ No scheduled announcement active.": "ℹ️ Keine geplante Ansage aktiv.",
             "Scheduled announcements: list in the panel \"Scheduled announcements\" — every full or half hour within an hour window, or daily at a set time; every day, Mon–Fri or Sat–Sun. Placeholders such as {time} also work in AIRP_Say.": "Geplante Ansagen: Liste im Panel „Geplante Ansagen\" — jede volle oder halbe Stunde in einem Stundenfenster oder täglich zu einer Uhrzeit; jeden Tag, Mo–Fr oder Sa–So. Platzhalter wie {uhrzeit} gehen auch in AIRP_Say.",
-            "• ⏰ New: scheduled announcements — e.g. the time every full hour from 7 to 22 h, or a good-morning message on weekdays. Placeholders {time}, {weekday}, {date} and {var:ID} also work in AIRP_Say.": "• ⏰ Neu: geplante Ansagen — z. B. stündlich die Uhrzeit von 7 bis 22 Uhr oder werktags ein Guten-Morgen-Gruß. Die Platzhalter {uhrzeit}, {wochentag}, {datum} und {var:ID} gehen auch in AIRP_Say."
+            "• ⏰ New: scheduled announcements — e.g. the time every full hour from 7 to 22 h, or a good-morning message on weekdays. Placeholders {time}, {weekday}, {date} and {var:ID} also work in AIRP_Say.": "• ⏰ Neu: geplante Ansagen — z. B. stündlich die Uhrzeit von 7 bis 22 Uhr oder werktags ein Guten-Morgen-Gruß. Die Platzhalter {uhrzeit}, {wochentag}, {datum} und {var:ID} gehen auch in AIRP_Say.",
+            "%s announcements are already waiting": "es warten schon %s Durchsagen",
+            "The announcement queue is busy, please try again.": "Die Warteschlange für Durchsagen ist belegt, bitte noch einmal versuchen.",
+            "Announcement not queued: %s": "Durchsage nicht eingereiht: %s",
+            "Queued announcement skipped: more than 10 minutes old.": "Eingereihte Durchsage übersprungen: älter als 10 Minuten.",
+            "Without waiting: AIRP_SayAsync(id, text, volume, chime) queues the announcement and returns at once; the instance speaks queued announcements one after the other (at most 10 waiting, older than 10 minutes are skipped). chime = true plays the chime first.": "Ohne Warten: AIRP_SayAsync(id, text, lautstärke, gong) reiht die Durchsage ein und kehrt sofort zurück; die Instanz spricht eingereihte Durchsagen der Reihe nach (höchstens 10 wartend, ältere als 10 Minuten werden übersprungen). gong = true spielt vorher den Gong.",
+            "• 📬 New: AIRP_SayAsync(id, text, volume, chime) — announcements without waiting, queued and spoken one after the other, optionally with a chime first. For modules such as WarnHub and for scripts that must not wait for the speaker.": "• 📬 Neu: AIRP_SayAsync(id, text, lautstärke, gong) — Durchsagen ohne Warten, eingereiht und der Reihe nach gesprochen, auf Wunsch mit Gong davor. Für Module wie WarnHub und Skripte, die nicht auf den Lautsprecher warten sollen."
         }
     }
 }

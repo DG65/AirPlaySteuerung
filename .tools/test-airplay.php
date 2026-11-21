@@ -14,6 +14,7 @@ require_once $basis . '/libs/AirPlayGeraete.php';
 require_once $basis . '/libs/AirPlayKlimaDaten.php';
 require_once $basis . '/libs/AirPlayPiper.php';
 require_once $basis . '/libs/AirPlayZeitplan.php';
+require_once $basis . '/libs/AirPlayWarteschlange.php';
 
 $fehler = 0;
 $anzahl = 0;
@@ -240,6 +241,29 @@ pruefe('fällig: nur passende Einträge', count(AirPlayZeitplan::faellig([$stuen
 $text = AirPlayPlatzhalter::ersetzen('{uhrzeit}|{time}|{Wochentag}|{datum}|{var:42}|{var:7}|{unbekannt}', $sa + 1800, fn (int $id) => $id === 42 ? '21,5 °C' : null);
 pruefe('Platzhalter', $text === '14:30|14:30|Saturday|21 November|21,5 °C|{var:7}|{unbekannt}', $text);
 pruefe('volle Stunde ohne Minuten', AirPlayPlatzhalter::ersetzen('{uhrzeit}', $sa, fn ($i) => null) === "14 o'clock");
+
+echo "Warteschlange (AIRP_SayAsync)\n";
+$q = [];
+for ($n = 1; $n <= AirPlayWarteschlange::MAX; $n++) {
+    $q = AirPlayWarteschlange::anhaengen($q, "Text $n", 150, $n === 1, 1000 + $n);
+}
+pruefe('einreihen: Lautstärke begrenzt, Gong gemerkt', $q[0]['volume'] === 100 && $q[0]['chime'] === true && $q[1]['chime'] === false);
+try {
+    AirPlayWarteschlange::anhaengen($q, 'zu viel', -1, false, 2000);
+    pruefe('höchstens MAX wartend', false);
+} catch (AirPlayFehler $e) {
+    pruefe('höchstens MAX wartend', $e->vorlage === '%s announcements are already waiting');
+}
+try {
+    AirPlayWarteschlange::anhaengen([], '  ', -1, false, 2000);
+    pruefe('leerer Text abgelehnt', false);
+} catch (AirPlayFehler $e) {
+    pruefe('leerer Text abgelehnt', true);
+}
+[$erster, $rest] = AirPlayWarteschlange::entnehmen($q);
+pruefe('entnehmen in Reihenfolge', $erster['text'] === 'Text 1' && count($rest) === AirPlayWarteschlange::MAX - 1 && $rest[0]['text'] === 'Text 2');
+pruefe('leere Schlange', AirPlayWarteschlange::entnehmen([]) === [null, []]);
+pruefe('Verfall nach 10 Minuten', !AirPlayWarteschlange::verfallen(['time' => 1000], 1600) && AirPlayWarteschlange::verfallen(['time' => 1000], 1601));
 
 exec('php ' . escapeshellarg(__DIR__ . '/texte-sammeln.php'), $aus, $rc);
 pruefe('alle Texte in locale.json', $rc === 0, implode(' ', $aus));

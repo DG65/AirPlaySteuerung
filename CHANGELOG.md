@@ -1,6 +1,12 @@
 # Changelog
 
-## 0.6.0 (unveröffentlicht)
+## 0.7.0 (unveröffentlicht)
+
+- Neu: `AIRP_SayAsync(id, text, lautstärke, gong)` — Durchsage einreihen und sofort zurückkehren. Je Gerät eine
+  Warteschlange (höchstens 10, ältere als 10 Minuten verfallen), abgearbeitet der Reihe nach vom Timer „Queue";
+  mit Gong davor auf Wunsch. Anlass: WarnHub soll Warnungen ansagen, ohne in seinem Abfragelauf zu warten.
+
+## 0.6.0 (21.11.2026)
 
 - Neu: Geplante Ansagen — Liste im HomePod-Gerät: jede volle oder halbe Stunde in einem Stundenfenster (auch über
   Mitternacht) oder täglich zu einer Uhrzeit; jeden Tag, Mo–Fr oder Sa–So; eigene Lautstärke, Gong davor. Ein

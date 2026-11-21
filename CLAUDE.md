@@ -92,6 +92,13 @@
   RunSchedule spielt fällige Einträge, > 10 min Verspätung wird übersprungen. Gong + Sprache = ein PCM-Strom.
 - `.tools/texte-sammeln.php` nimmt auch Vorlagen ohne Buchstaben auf, wenn sie `%1$s` enthalten.
 
+## Warteschlange (0.7.0)
+
+- `AIRP_SayAsync(id, text, volume, chime)` auf Wunsch von WarnHub (Zieltyp „Durchsage", 21.11.2026). Schlange im
+  Attribut `Queue`, Semaphore `AIRP_Q_<id>` fürs Einreihen/Entnehmen, `AIRP_QRUN_<id>` gegen zwei gleichzeitige Läufe
+  (zweiter Lauf stellt den Timer auf 1 s und kommt wieder). Keine Standardwerte in AIRP_-Funktionen (Symcon-Verhalten
+  nicht geprüft).
+
 ## Geräteerkennung (`libs/AirPlayGeraete.php`)
 
 - Aus TXT von `_airplay._tcp`: flags 0x8/0x200 → PIN nötig (LG OLED C9: 0x644), acl=1, act=2, pw/0x80,

@@ -5,7 +5,7 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
 
 [English version](README.en.md)
 
-> **Status: Beta 0.6.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
+> **Status: Beta 0.7.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
 > (1. Generation) und HomePod mini geprüft. Apple TV mit tvOS ist nach derselben Vorlage gebaut, aber
 > noch nicht an echter Hardware getestet.
 
@@ -62,6 +62,8 @@ AIRP_AnnounceWave(12345, $wavBytes);
 // Text vorlesen (Piper-Server im Panel „Sprachausgabe"), mit Lautstärke
 AIRP_Say(12345, 'Es ist ' . date('G') . ' Uhr.');
 AIRP_SayEx(12345, 'Die Waschmaschine ist fertig.', 40);
+// ohne Warten: einreihen und sofort zurück, die Instanz spricht der Reihe nach (true = Gong davor)
+AIRP_SayAsync(12345, 'Die Haustür ist offen.', -1, true);
 // Platzhalter: {uhrzeit}, {wochentag}, {datum}, {var:ID} (Wert mit Einheit)
 AIRP_Say(12345, 'Guten Morgen, heute ist {wochentag}, der {datum}. Draußen sind {var:23456}.');
 
