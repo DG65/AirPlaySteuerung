@@ -9,6 +9,25 @@ no Docker, no additional software on the Symcon host.
 > HomePod (1st generation) and HomePod mini. Apple TV with tvOS follows the same reference, but has not
 > been tested on real hardware yet.
 
+## Goals and scope
+
+**What the module is for:** making HomePods usable in Symcon — announcements and speech output, scheduled
+announcements, alarm clock, now-playing display and music control, temperature and humidity of the HomePod mini.
+Everything in PHP inside Symcon, without additional software.
+
+**What it is explicitly not meant to become:** an Apple TV remote. Like any AirPlay receiver, an Apple TV can play
+announcements and shows what is playing; power, remote buttons, apps or inputs are not planned — not in later
+versions either.
+
+**For Apple TV control**, the Symcon store offers the module **"Apple TV" by KaiS**
+([forum](https://community.symcon.de/t/modul-appletv/52341), [documentation](https://deinsmarthome.info/module/apple-tv/)).
+It connects an Apple TV via MQTT — with power, remote buttons and playback — and is the right choice if you want to
+control an Apple TV completely. Both modules can run side by side. I recommend it here on
+purpose and see AirPlay-Steuerung as a complement, not a replacement.
+
+Siri control of Symcon devices still runs through Symcon's HomeKit bridge; the HomePod mini as a Thread border
+router for Matter does not need this module.
+
 ## Features
 
 - **Announcements:** a WAV file from a Symcon media object (or as raw bytes, e.g. from a TTS module) is
@@ -186,8 +205,8 @@ Home automations sometimes stop running; switching them off and on again helps. 
 
 - The display is polled, not pushed: changes appear with up to one polling interval of delay. A query
   keeps a PHP thread busy for about 2 seconds.
-- Apple TV (tvOS): display and control follow the reference but are untested; power, remote buttons and
-  apps are still missing.
+- Apple TV (tvOS): display and playback control follow the reference but are untested. Power, remote
+  buttons and apps are not planned (see "Goals and scope").
 - AirPlay 2 receivers from other manufacturers (e.g. AV receivers) are shown as "⚠️ untested": they
   offer the required pairing, but nobody has tried them yet. Feedback is welcome.
 - Stereo pairs have not been tested yet. Group announcements play on all devices at the same time, but not
@@ -199,16 +218,6 @@ The module speaks AirPlay 2 itself: pairing without PIN entry (SRP-6a, 3072 bit)
 session (ChaCha20-Poly1305) and the audio stream as raw PCM in real time. Display and control use the Media
 Remote Protocol (MRP) inside the AirPlay tunnel. Connections exist only for the duration of an action. The protocol flow is reimplemented in PHP after the open library
 [pyatv](https://github.com/postlund/pyatv) (MIT), see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
-
-## Related modules
-
-For **Apple TV control**, the Symcon store offers the module **"AppleTV" by KaiS**
-([forum](https://community.symcon.de/t/52341)). It connects pyatv through the pyatv-mqtt-bridge and is a
-good choice if an MQTT server and Docker/Python are running anyway. AirPlay-Steuerung takes a different
-route: everything in PHP inside Symcon, with HomePod announcements at its core.
-
-Siri control of Symcon devices still runs through Symcon's HomeKit bridge; the HomePod mini as a Thread
-border router for Matter does not need this module.
 
 ## License
 

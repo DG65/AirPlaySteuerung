@@ -10,8 +10,9 @@
   (AIRPC, `{B3546B70-328B-4640-B8D2-90C2F2D52DDB}`), Bibliothek `{F4937700-A1EF-41E6-B9B4-9F375903FB30}`.
   Klassen/Präfixe/GUIDs eingefroren, sobald eine Instanz existiert. Prüfung 20.11.2026: kein Symcon-Modul
   mit AirPlay/Apple/HomePod im Namen, Präfixe frei.
-- Abgrenzung: KaiS' Store-Modul „AppleTV" (pyatv-mqtt-bridge) in der README fair erwähnt; vor der
-  Veröffentlichung geht eine Nachricht an KaiS. LG webOS gehört nicht hierher
+- Abgrenzung: README-Abschnitt „Ziele und Abgrenzung" (ganz oben) — keine Apple-TV-Fernbedienung, auch später nicht;
+  KaiS' Store-Modul „Apple TV" (schnittcher.info.ips.appletv, MQTT) ausdrücklich empfohlen. KaiS am 22.11.2026 per PN
+  informiert (Antwort offen) — Store-Einreichung erst nach Antwort oder angemessener Wartezeit. LG webOS gehört nicht hierher
   (PeterChrisben baut ein Modul).
 
 ## Aufbau (libs/)
