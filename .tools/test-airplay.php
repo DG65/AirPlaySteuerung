@@ -20,6 +20,7 @@ require_once $basis . '/libs/AirPlayStimmen.php';
 require_once $basis . '/libs/AirPlayLautstaerke.php';
 require_once $basis . '/libs/AirPlayProtokoll.php';
 require_once $basis . '/libs/AirPlayGruppe.php';
+require_once $basis . '/libs/AirPlayNetz.php';
 
 $fehler = 0;
 $anzahl = 0;
@@ -363,6 +364,16 @@ for ($n = 1; $n <= 25; $n++) {
 pruefe('Protokoll: neueste zuerst, höchstens 20, Text gekürzt', count($p) === AirPlayProtokoll::MAX && $p[0]['zeit'] === 25 && mb_strlen($p[0]['text']) === 120);
 pruefe('Gruppen: leer = alle, ohne Groß-/Kleinschreibung, Leerzeichen egal, keine Teilwörter',
     AirPlayGruppe::enthaelt('', '') && AirPlayGruppe::enthaelt('Erdgeschoss, Küche', ' küche ') && !AirPlayGruppe::enthaelt('Küchenzeile', 'Küche') && !AirPlayGruppe::enthaelt('', 'Bad'));
+
+echo "Symcon-Adresse für den Kurzbefehl\n";
+$netz = fn (string $name, string $ip) => ['Description' => $name, 'IP' => $ip];
+pruefe('WLAN zuerst gelistet, Kabel gewinnt (Fall 22.11.2026: WLAN .8 fiel weg)', AirPlayNetz::symconAdresse([$netz('wlan0', '192.168.2.8'), $netz('br0', '192.168.2.7')]) === '192.168.2.7');
+pruefe('Docker/libvirt/Loopback werden übergangen (Liste wie live)', AirPlayNetz::symconAdresse([
+    $netz('lo', '127.0.0.1'), $netz('docker0', '172.17.0.1'), $netz('br-ad3ff5560f22', '172.24.0.1'), $netz('virbr0', '192.168.122.1'), $netz('br0', '192.168.2.7'),
+]) === '192.168.2.7');
+pruefe('nur WLAN: WLAN wird genommen; Windows-Namen', AirPlayNetz::symconAdresse([$netz('Wi-Fi', '10.0.0.5')]) === '10.0.0.5'
+    && AirPlayNetz::symconAdresse([$netz('WLAN', '10.0.0.5'), $netz('Ethernet', '10.0.0.6')]) === '10.0.0.6');
+pruefe('keine taugliche Adresse: null (VPN, Link-Local, IPv6)', AirPlayNetz::symconAdresse([$netz('tailscale0', '100.64.0.2'), $netz('eth0', '169.254.1.2'), $netz('eth1', 'fe80::1')]) === null);
 
 exec('php ' . escapeshellarg(__DIR__ . '/texte-sammeln.php'), $aus, $rc);
 pruefe('alle Texte in locale.json', $rc === 0, implode(' ', $aus));

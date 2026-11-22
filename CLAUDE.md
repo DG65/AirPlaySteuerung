@@ -81,6 +81,8 @@
   Einheit/Komma, Kennung aus Name). Auslöse-Variable „Trigger" (Bool, Aktion) → paresys HomeKit-Bridge (Zubehör Switch)
   → Home-Automation „Gerät wird gesteuert/eingeschaltet" → Kurzbefehl „Status abrufen" + „Inhalte von URL abrufen"
   POST an `/hook/airplayklima<ID>?key=…`. WebHook-Eintrag wie RoboHub (WebHook-Control-Property `Hooks`).
+- Kurzbefehl-URL: `AirPlayNetz::symconAdresse` wählt Kabel vor WLAN, ohne Docker/libvirt/VPN (live 22.11.2026: LAN .7 +
+  WLAN .8, die WLAN-Adresse fiel weg, Kurzbefehl lief 4 h ins Leere). Bei Status 202 nennt das Formular Ursache + URL.
 - Vorbild: vdamboeck/homepod-ha-sensors (Home Assistant). Alternativen bewertet: Thermostat-Zieltemperatur über die
   Brücke (10–38 °C, 0,1) wäre möglich, für Feuchte gibt es kein beschreibbares Merkmal → WebHook.
 

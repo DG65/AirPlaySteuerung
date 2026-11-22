@@ -7,6 +7,8 @@
 declare(strict_types=1);
 
 const IS_ACTIVE = 102;
+const KR_READY = 10103;
+const IPS_KERNELMESSAGE = 10100;
 const KL_MESSAGE = 10200;
 const KL_WARNING = 10201;
 const MEDIATYPE_IMAGE = 1;
@@ -29,6 +31,8 @@ final class Attrappe
     public static int $naechste = 50000;
     /** @var array<string, string> Klassenname → Modul-GUID (für IPS_GetInstanceListByModuleID) */
     public static array $module = [];
+    /** Antwort von Sys_GetNetworkInfo */
+    public static array $netz = [];
 
     public static function zuruecksetzen(): void
     {
@@ -145,3 +149,5 @@ function IPS_SemaphoreEnter($n, $t) { return true; }
 function IPS_SemaphoreLeave($n) { return true; }
 function IPS_GetInstanceListByModuleID($guid) { return array_keys(array_filter(Attrappe::$instanzen, fn ($i) => (Attrappe::$module[get_class($i)] ?? '') === $guid)); }
 function IPS_GetProperty($id, $name) { return Attrappe::$instanzen[$id]->eigenschaft($name); }
+function IPS_GetKernelRunlevel() { return KR_READY; }
+function Sys_GetNetworkInfo() { return Attrappe::$netz; }

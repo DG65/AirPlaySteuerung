@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/AirPlayFormular.php';
 require_once __DIR__ . '/../libs/AirPlayKlimaDaten.php';
+require_once __DIR__ . '/../libs/AirPlayNetz.php';
 
 // ===========================================================================
 // AirPlay-Klima — Temperatur und Luftfeuchte der HomePods (mini, 2. Gen.) als
@@ -208,14 +209,7 @@ class AirPlayKlima extends IPSModule
 
     private function hookUrl(): string
     {
-        $ip = '<Symcon-IP>';
-        foreach (function_exists('Sys_GetNetworkInfo') ? (array)@Sys_GetNetworkInfo() : [] as $netz) {
-            $kandidat = (string)($netz['IP'] ?? '');
-            if (filter_var($kandidat, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) && !str_starts_with($kandidat, '127.') && !str_starts_with($kandidat, '172.17.')) {
-                $ip = $kandidat;
-                break;
-            }
-        }
+        $ip = AirPlayNetz::symconAdresse(function_exists('Sys_GetNetworkInfo') ? (array)@Sys_GetNetworkInfo() : []) ?? '<Symcon-IP>';
         return 'http://' . $ip . ':3777' . $this->hookPfad() . '?key=' . $this->ReadAttributeString('Key');
     }
 
@@ -271,10 +265,15 @@ class AirPlayKlima extends IPSModule
             $this->SetStatus(self::STATUS_KEIN_WEBHOOK);
             return;
         }
+        $this->SetStatus($this->veraltet() ? self::STATUS_VERALTET : IS_ACTIVE);
+    }
+
+    /** Ein HomePod hat schon gemeldet, aber seit drei Messabständen kam nichts mehr. */
+    private function veraltet(): bool
+    {
         $letzter = $this->ReadAttributeInteger('LastReceived');
-        $minuten = (int)$this->ReadPropertyInteger('Interval');
-        $veraltet = $this->raeume() !== [] && $letzter > 0 && $minuten > 0 && time() - $letzter > 3 * max(2, $minuten) * 60;
-        $this->SetStatus($veraltet ? self::STATUS_VERALTET : IS_ACTIVE);
+        $minuten = $this->ReadPropertyInteger('Interval');
+        return $this->raeume() !== [] && $letzter > 0 && $minuten > 0 && time() - $letzter > 3 * max(2, $minuten) * 60;
     }
 
     // ------------------------------------------------------------------ Formular
@@ -319,9 +318,11 @@ class AirPlayKlima extends IPSModule
         $empfang = [
             'type' => 'ExpansionPanel', 'expanded' => true, 'caption' => '🌡️  Reception & trigger',
             'items' => [
-                ['type' => 'Label', 'caption' => $eingerichtet && $letzter > 0
-                    ? AirPlayText::t('✅ Last values received: %s', date('d.m.Y H:i', $letzter))
-                    : AirPlayText::t('ℹ️ No values received yet — set up the Apple Home automation (panel below).')],
+                ['type' => 'Label', 'caption' => match (true) {
+                    $this->veraltet() => AirPlayText::t('⚠️ No values since %s. Most common cause: the address of Symcon has changed (e.g. Wi-Fi connection lost). The shortcut must use this URL: %s', date('d.m.Y H:i', $letzter), $this->hookUrl()),
+                    $eingerichtet && $letzter > 0 => AirPlayText::t('✅ Last values received: %s', date('d.m.Y H:i', $letzter)),
+                    default => AirPlayText::t('ℹ️ No values received yet — set up the Apple Home automation (panel below).'),
+                }],
                 ['type' => 'List', 'name' => 'Readings', 'caption' => 'HomePods', 'rowCount' => max(2, count($zeilen)), 'add' => false, 'delete' => false,
                     'columns' => [
                         ['caption' => 'Name', 'name' => 'name', 'width' => 'auto'],
@@ -350,7 +351,7 @@ class AirPlayKlima extends IPSModule
                 ['type' => 'Label', 'caption' => 'C2. Below it, the same action a second time: "Humidity Sensor" in the same room → "Current Relative Humidity".'],
                 ['type' => 'Label', 'caption' => 'C3. Below it, the action "Get Contents of URL". Paste the URL from the field below into the URL field — nothing after it. Expand the action (arrow "›"): Method "POST", Request Body "JSON".'],
                 ['type' => 'ValidationTextBox', 'name' => 'HookUrl', 'caption' => 'URL for the shortcut (copy)', 'value' => $this->hookUrl(), 'width' => '720px'],
-                ['type' => 'Label', 'caption' => 'The URL contains a secret key — treat it like a password. If the IP address is wrong, use the one under which iPhone and home hub reach Symcon (port 3777).'],
+                ['type' => 'Label', 'caption' => 'The URL contains a secret key — treat it like a password. The module picks the wired network address of Symcon (before Wi-Fi, without Docker/VPN networks). If it is wrong, use the one under which iPhone and home hub reach Symcon (port 3777) — preferably a fixed address (DHCP reservation in the router).'],
                 ['type' => 'Label', 'caption' => 'C4. Add three fields with "Add new field" → "Text" (key on the left, value on the right): key name → value: your room name, e.g. Schlafzimmer; key temperature → value: the variable from C1; key humidity → value: the variable from C2. Insert variables via the bar above the keyboard or right-click → "Insert Variable"; they appear as coloured tokens. Type the keys exactly like this, without "=".'],
                 ['type' => 'Label', 'caption' => 'Do not append the values to the URL: the shortcut inserts them with unit and space ("22,4 °C"), the URL ends at the space and the humidity is lost.'],
                 ['type' => 'Label', 'caption' => 'C5. Tap "Done" and make sure the automation is switched on. More HomePods: repeat C1 to C4 in the same shortcut with another room name.'],

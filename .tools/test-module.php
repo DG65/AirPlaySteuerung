@@ -11,6 +11,7 @@ require __DIR__ . '/symcon-attrappe.php';
 $basis = dirname(__DIR__);
 require $basis . '/AirPlayGeraet/module.php';
 require $basis . '/AirPlaySprache/module.php';
+require $basis . '/AirPlayKlima/module.php';
 Attrappe::$module = ['AirPlayGeraet' => '{2BB8B63A-9A5A-4704-8230-C18259F9F3E7}', 'AirPlaySprache' => '{1995F9C5-57BE-4CCB-8980-07D0D4E1867E}'];
 
 // Funktionen, die Symcon aus den öffentlichen Methoden erzeugt
@@ -133,6 +134,25 @@ $g->WriteAttributeString('Ramp', json_encode(['start' => 5, 'ziel' => 30, 'begin
 Attrappe::$objekte[Attrappe::kind(200, 'Zustand')]['wert'] = 2;   // pausiert
 $g->RequestAction('RunRamp', 0);
 pruefe('Anstieg endet, wenn die Musik angehalten wurde', $g->ReadAttributeString('Ramp') === '' && $g->timer['Ramp'] === 0);
+
+echo "AirPlay-Klima\n";
+Attrappe::$netz = [['Description' => 'wlan0', 'IP' => '192.168.2.8'], ['Description' => 'docker0', 'IP' => '172.17.0.1'], ['Description' => 'br0', 'IP' => '192.168.2.7']];
+$k = new AirPlayKlima(400);
+$k->Create();
+$k->ApplyChanges();
+$form = json_decode($k->GetConfigurationForm(), true);
+$url = '';
+array_walk_recursive($form, function ($wert, $schluessel) use (&$url) {
+    if ($schluessel === 'value' && is_string($wert) && str_contains($wert, '/hook/airplayklima400')) {
+        $url = $wert;
+    }
+});
+pruefe('Kurzbefehl-URL mit Kabel-Adresse statt WLAN', str_starts_with($url, 'http://192.168.2.7:3777/hook/airplayklima400?key='), $url);
+$k->WriteAttributeString('Rooms', json_encode(['Schlafzimmer' => ['temperatur' => 22.0, 'feuchte' => 40.0, 'zeit' => time() - 7200]]));
+Attrappe::neu('var', 400, 'TSchlafzimmer', 22.0);
+$k->WriteAttributeInteger('LastReceived', time() - 7200);
+$text = json_encode(json_decode($k->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+pruefe('Seit drei Abständen nichts: Formular nennt Ursache und aktuelle URL', str_contains($text, 'Most common cause') && str_contains($text, 'http://192.168.2.7:3777/hook/airplayklima400'));
 
 proc_terminate($attrappe);
 echo "\n$anzahl Prüfungen, $fehler Fehler\n";

@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.9.0 (unveröffentlicht)
+## 0.9.1 (unveröffentlicht)
+
+- Fix: AirPlay-Klima wählt für die Kurzbefehl-URL die Kabel-Adresse von Symcon vor WLAN und übergeht virtuelle Netze
+  (Docker, libvirt, VPN). Vorher die erste Adresse der Liste — live fiel eine WLAN-Adresse weg, und der Kurzbefehl lief
+  ins Leere.
+- Neu: Bei „Seit einiger Zeit keine Werte" nennt das Formular die häufigste Ursache (geänderte Adresse) und die URL,
+  die der Kurzbefehl verwenden muss.
+
+## 0.9.0 (22.11.2026)
 
 - Neu: **Wecker** — Liste im Gerät: Uhrzeit, Tage, Playlist (Link oder Favorit), Lautstärke steigt von Start auf Ende
   über einstellbare Minuten (Schritt alle 20 s), danach optionaler Gruß. Pausieren beendet den Anstieg.
