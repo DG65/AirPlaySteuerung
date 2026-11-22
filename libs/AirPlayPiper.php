@@ -20,8 +20,6 @@ require_once __DIR__ . '/AirPlayText.php';
 final class AirPlayPiper
 {
     public const STANDARD_PORT = 10200;
-    /** Höchstlänge eines Ansagetexts (Zeichen). */
-    public const MAX_ZEICHEN = 1000;
     /** Größte angenommene Einzelnutzlast (Bytes) — Schutz gegen kaputte Antworten. */
     private const MAX_NUTZLAST = 16 * 1024 * 1024;
 
@@ -33,14 +31,7 @@ final class AirPlayPiper
     /** Text sprechen lassen; Ergebnis ist eine WAV-Datei (PCM 16 Bit, Abtastrate der Stimme). */
     public function wav(string $text, string $stimme = ''): string
     {
-        $text = trim(preg_replace('/\s+/u', ' ', $text) ?? '');
-        if ($text === '') {
-            throw new AirPlayFehler('the text is empty');
-        }
-        if (mb_strlen($text) > self::MAX_ZEICHEN) {
-            throw new AirPlayFehler('the text is longer than %s characters', self::MAX_ZEICHEN);
-        }
-        $daten = ['text' => $text];
+        $daten = ['text' => AirPlayText::sprechtext($text)];
         if (trim($stimme) !== '') {
             $daten['voice'] = ['name' => trim($stimme)];
         }

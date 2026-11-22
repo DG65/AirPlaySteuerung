@@ -17,6 +17,8 @@ final class AirPlayAudio
     public const ZIELRATE = 44100;
     /** Höchstdauer einer Durchsage in Sekunden (Laufzeit des aufrufenden Skripts). */
     public const MAX_SEKUNDEN = 120;
+    /** Frames je Umrechnungsblock (begrenzt den Speicher unabhängig von der Länge). */
+    private const BLOCK = 4096;
 
     /** Erkennt das Dateiformat grob anhand der ersten Bytes. */
     public static function format(string $daten): string
@@ -77,47 +79,78 @@ final class AirPlayAudio
         }
         $quelle = sprintf('%d Hz, %d bit, %d ch', $rate, $bits, $kanaele);
 
-        // Samples links/rechts als int16 einlesen
-        $links = [];
-        $rechts = [];
-        if ($bits === 16) {
-            $alle = array_values(unpack('v*', substr($daten, 0, $frames * 2 * $kanaele)));
-            for ($i = 0, $j = 0; $i < $frames; $i++, $j += $kanaele) {
-                $l = $alle[$j] >= 32768 ? $alle[$j] - 65536 : $alle[$j];
-                $r = $kanaele > 1 ? ($alle[$j + 1] >= 32768 ? $alle[$j + 1] - 65536 : $alle[$j + 1]) : $l;
-                $links[] = $l;
-                $rechts[] = $r;
-            }
-        } else {
-            for ($i = 0; $i < $frames; $i++) {
-                $o = $i * $bytes * $kanaele;
-                $l = self::sample($daten, $o, $bits);
-                $links[] = $l;
-                $rechts[] = $kanaele > 1 ? self::sample($daten, $o + $bytes, $bits) : $l;
-            }
-        }
-
-        $ausgabe = '';
+        $form = ['daten' => $daten, 'bits' => $bits, 'kanaele' => $kanaele, 'frames' => $frames];
+        // Blockweise umrechnen: Speicher bleibt bei einem Block (sonst je Sample ein PHP-Array-Eintrag —
+        // eine 60-s-Ansage bräuchte mehrere hundert MB).
+        $pcm = '';
         if ($rate === self::ZIELRATE) {
-            for ($i = 0; $i < $frames; $i++) {
-                $ausgabe .= pack('nn', $links[$i] & 0xFFFF, $rechts[$i] & 0xFFFF);
+            for ($a = 0; $a < $frames; $a += self::BLOCK) {
+                [$l, $r] = self::block($form, $a, min(self::BLOCK, $frames - $a));
+                $pcm .= self::stereoBigEndian($l, $r);
             }
         } else {
+            // lineare Interpolation; je Ausgabeblock nur den nötigen Eingangsausschnitt lesen
             $zielFrames = (int)floor($frames * self::ZIELRATE / $rate);
             $schritt = $rate / self::ZIELRATE;
-            $teile = [];
-            for ($i = 0; $i < $zielFrames; $i++) {
-                $p = $i * $schritt;
-                $a = (int)$p;
-                $b = min($a + 1, $frames - 1);
-                $t = $p - $a;
-                $l = (int)round($links[$a] + ($links[$b] - $links[$a]) * $t);
-                $r = (int)round($rechts[$a] + ($rechts[$b] - $rechts[$a]) * $t);
-                $teile[] = pack('nn', $l & 0xFFFF, $r & 0xFFFF);
+            for ($i0 = 0; $i0 < $zielFrames; $i0 += self::BLOCK) {
+                $i1 = min($i0 + self::BLOCK, $zielFrames);
+                $von = (int)($i0 * $schritt);
+                [$l, $r] = self::block($form, $von, min($frames - $von, (int)(($i1 - 1) * $schritt) - $von + 2));
+                $letzter = count($l) - 1;
+                $zl = [];
+                $zr = [];
+                for ($i = $i0; $i < $i1; $i++) {
+                    $p = $i * $schritt - $von;
+                    $a = (int)$p;
+                    $b = min($a + 1, $letzter);
+                    $t = $p - $a;
+                    $zl[] = (int)round($l[$a] + ($l[$b] - $l[$a]) * $t);
+                    $zr[] = (int)round($r[$a] + ($r[$b] - $r[$a]) * $t);
+                }
+                $pcm .= self::stereoBigEndian($zl, $zr);
             }
-            $ausgabe = implode('', $teile);
         }
-        return ['pcm' => $ausgabe, 'sekunden' => $frames / $rate, 'quelle' => $quelle];
+        return ['pcm' => $pcm, 'sekunden' => $frames / $rate, 'quelle' => $quelle];
+    }
+
+    /**
+     * Frames [$start, $start + $anzahl) als int16 links/rechts (Mono wird verdoppelt).
+     * @param array{daten:string, bits:int, kanaele:int, frames:int} $f
+     * @return array{0: list<int>, 1: list<int>}
+     */
+    private static function block(array $f, int $start, int $anzahl): array
+    {
+        $bytes = intdiv($f['bits'], 8);
+        $k = $f['kanaele'];
+        $links = [];
+        $rechts = [];
+        if ($f['bits'] === 16) {
+            $alle = array_values(unpack('v*', substr($f['daten'], $start * 2 * $k, $anzahl * 2 * $k)));
+            for ($j = 0, $n = count($alle); $j + $k <= $n; $j += $k) {
+                $l = $alle[$j] >= 32768 ? $alle[$j] - 65536 : $alle[$j];
+                $links[] = $l;
+                $rechts[] = $k > 1 ? ($alle[$j + 1] >= 32768 ? $alle[$j + 1] - 65536 : $alle[$j + 1]) : $l;
+            }
+            return [$links, $rechts];
+        }
+        for ($i = $start, $ende = $start + $anzahl; $i < $ende; $i++) {
+            $o = $i * $bytes * $k;
+            $l = self::sample($f['daten'], $o, $f['bits']);
+            $links[] = $l;
+            $rechts[] = $k > 1 ? self::sample($f['daten'], $o + $bytes, $f['bits']) : $l;
+        }
+        return [$links, $rechts];
+    }
+
+    /** @param list<int> $l @param list<int> $r */
+    private static function stereoBigEndian(array $l, array $r): string
+    {
+        $werte = [];
+        foreach ($l as $i => $wert) {
+            $werte[] = $wert & 0xFFFF;
+            $werte[] = $r[$i] & 0xFFFF;
+        }
+        return pack('n*', ...$werte);
     }
 
     private static function sample(string $d, int $o, int $bits): int
@@ -136,25 +169,36 @@ final class AirPlayAudio
         return $v >= 32768 ? $v - 65536 : $v;
     }
 
-    /** Zweiklang-Gong (ca. 1,2 s) als Strom-PCM, z. B. für Tests oder vor einer Durchsage. */
-    public static function gong(): string
+    /**
+     * Mitgelieferte Klänge, rein synthetisch (kein Audiofile): je Ton Frequenz (Hz) und Einsatz (s),
+     * dazu Gesamtdauer (s) und Abklingrate (1/s) der Hüllkurve.
+     */
+    public const KLAENGE = [
+        'gong' => ['dauer' => 1.2, 'abfall' => 3.5, 'toene' => [[659.25, 0.0], [523.25, 0.45]]],
+        'doorbell' => ['dauer' => 1.8, 'abfall' => 2.2, 'toene' => [[783.99, 0.0], [659.25, 0.6]]],
+        'notice' => ['dauer' => 0.7, 'abfall' => 6.0, 'toene' => [[987.77, 0.0]]],
+        'alarm' => ['dauer' => 1.9, 'abfall' => 9.0, 'toene' => [[880.0, 0.0], [660.0, 0.3], [880.0, 0.6], [660.0, 0.9], [880.0, 1.2], [660.0, 1.5]]],
+    ];
+
+    /** Klang als Strom-PCM (44,1 kHz, Stereo, Big Endian), z. B. vor einer Durchsage. */
+    public static function klang(string $name): string
     {
+        $k = self::KLAENGE[$name] ?? throw new AirPlayFehler('unknown sound %s', $name);
+        $frames = (int)($k['dauer'] * self::ZIELRATE);
         $teile = [];
-        $toene = [[659.25, 0.0], [523.25, 0.45]];
-        $dauer = 1.2;
-        $frames = (int)($dauer * self::ZIELRATE);
         for ($i = 0; $i < $frames; $i++) {
             $t = $i / self::ZIELRATE;
             $wert = 0.0;
-            foreach ($toene as [$frequenz, $start]) {
+            foreach ($k['toene'] as [$frequenz, $start]) {
                 if ($t >= $start) {
                     $dt = $t - $start;
-                    $huelle = min(1.0, $dt / 0.005) * exp(-3.5 * $dt);
+                    // 5 ms Einschwingen gegen Knacken, danach exponentielles Abklingen; Oberton für Glockenklang
+                    $huelle = min(1.0, $dt / 0.005) * exp(-$k['abfall'] * $dt);
                     $wert += $huelle * (sin(2 * M_PI * $frequenz * $dt) + 0.3 * sin(4 * M_PI * $frequenz * $dt));
                 }
             }
-            $s = (int)max(-32767, min(32767, round($wert * 9000)));
-            $teile[] = pack('nn', $s & 0xFFFF, $s & 0xFFFF);
+            $s = (int)max(-32767, min(32767, round($wert * 9000))) & 0xFFFF;
+            $teile[] = pack('nn', $s, $s);
         }
         return implode('', $teile);
     }

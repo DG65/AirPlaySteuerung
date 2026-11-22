@@ -5,7 +5,7 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
 
 [English version](README.en.md)
 
-> **Status: Beta 0.8.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
+> **Status: Beta 0.9.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
 > (1. Generation) und HomePod mini geprüft. Apple TV mit tvOS ist nach derselben Vorlage gebaut, aber
 > noch nicht an echter Hardware getestet.
 
@@ -26,7 +26,17 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
   Azure, ElevenLabs, Google Cloud. Gleiche Texte werden zwischengespeichert (Abschnitt unten).
 - **Geplante Ansagen:** Liste im Formular — jede volle oder halbe Stunde (z. B. „Es ist {uhrzeit}." von 7 bis 22 Uhr)
   oder täglich zu einer Uhrzeit, jeden Tag, Mo–Fr oder Sa–So, auf Wunsch mit Gong davor.
-- **Gong:** Zweiklang zum Testen oder als Ankündigung, ganz ohne Audiodatei.
+- **Wecker:** startet zur eingestellten Zeit eine Apple-Music-Playlist leise und hebt die Lautstärke über einige
+  Minuten an, danach auf Wunsch ein Gruß („Guten Morgen, es ist {uhrzeit}").
+- **Klänge:** Gong, Türklingel, Hinweiston und Alarm — rein synthetisch, ohne Audiodatei; als Vorspann vor Ansagen
+  wählbar.
+- **Nachtgrenze:** In einstellbaren Stunden spielt keine Durchsage lauter als X % — auch nicht von WarnHub, Automat
+  oder dem Zeitplan.
+- **Mehrere HomePods:** Gruppen je Gerät („Erdgeschoss, Küche"); `AIRPS_SayGroup` spricht auf allen Geräten einer
+  Gruppe.
+- **Player-Kachel:** Cover, Titel, ⏮ ⏯ ⏭, Lautstärke, Favoriten-Playlists und ein Feld für schnelle Ansagen.
+- **Durchsage-Protokoll:** die letzten 20 Durchsagen mit Quelle (Skript, Warteschlange, Zeitplan, Wecker, Kachel)
+  und Ergebnis im Formular.
 - **AirPlay-Klima:** Temperatur und Luftfeuchte von HomePod mini und HomePod (2. Generation) als echte
   Variablen — über eine Apple-Home-Automation, die Symcon über die HomeKit-Brücke im eingestellten Abstand
   anstößt (Anleitung im Formular, Abschnitt unten).
@@ -68,8 +78,12 @@ AIRP_SayAsync(12345, 'Die Haustür ist offen.', -1, true);
 // Platzhalter: {uhrzeit}, {wochentag}, {datum}, {var:ID} (Wert mit Einheit)
 AIRP_Say(12345, 'Guten Morgen, heute ist {wochentag}, der {datum}. Draußen sind {var:23456}.');
 
-AIRP_PlayChime(12345);        // Gong
-AIRP_TestConnection(12345);   // nur koppeln, ohne Ton
+AIRP_PlaySound(12345, 'doorbell');   // Klang: gong, doorbell, notice, alarm
+AIRP_PlayChime(12345);               // Gong
+AIRP_TestConnection(12345);          // nur koppeln, ohne Ton
+
+// Gruppe: alle Geräte der Sprachausgabe-Instanz 34567 mit Gruppe „Erdgeschoss" (leer = alle)
+AIRPS_SayGroup(34567, 'Erdgeschoss', 'Das Essen ist fertig.', -1, true);
 
 // Steuerung
 AIRP_Play(12345); AIRP_Pause(12345); AIRP_Stop(12345);
@@ -77,8 +91,9 @@ AIRP_Next(12345); AIRP_Previous(12345);
 AIRP_SetVolume(12345, 25);    // 0–100 %
 AIRP_Update(12345);           // Anzeige sofort auffrischen
 
-// Apple Music: Teilen-Link einer Playlist/eines Albums oder Song-IDs, true = zufällig
+// Apple Music: Teilen-Link einer Playlist/eines Albums, Song-IDs oder Name eines Favoriten, true = zufällig
 AIRP_PlayPlaylist(12345, 'https://music.apple.com/de/playlist/…/pl.u-…', true);
+AIRP_PlayPlaylist(12345, 'Morgenmusik', true);
 ```
 
 **Apple Music:** Das Modul liest die Titelliste von der öffentlichen Apple-Music-Seite des Links und
@@ -177,7 +192,8 @@ für Home Assistant.
   Fernbedienung und Apps fehlen noch.
 - Geräte anderer Hersteller mit AirPlay 2 (z. B. AV-Receiver) stehen auf „⚠️ ungeprüft": Sie bieten
   die nötige Kopplung, ausprobiert hat es aber noch niemand. Rückmeldungen sind willkommen.
-- Stereopaare und Gruppen mehrerer HomePods sind noch nicht geprüft.
+- Stereopaare sind noch nicht geprüft. Gruppen-Durchsagen laufen auf allen Geräten gleichzeitig, aber nicht
+  taktgenau synchron (jedes Gerät bekommt seinen eigenen Strom).
 
 ## Wie es funktioniert
 

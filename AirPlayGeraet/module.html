@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Player-Kachel der AirPlay-Steuerung (HTML-SDK). Daten kommen über handleMessage (GetVisualizationTile beim
+     Aufbau mit Texten und Cover, UpdateVisualizationValue danach ohne Texte, das Cover nur bei Wechsel).
+     Aktionen gehen per requestAction an RequestAction der Instanz: Steuerung, Lautstaerke, Favorite, Say. -->
+<style>
+:root{--fg:#1d1d1f;--fg2:#6e6e73;--rand:rgba(0,0,0,.12);--fl:rgba(0,0,0,.05);--akzent:#fa2d48;--akzentbg:rgba(250,45,72,.12)}
+@media (prefers-color-scheme:dark){:root{--fg:#f2f2f7;--fg2:#a1a1a6;--rand:rgba(255,255,255,.16);--fl:rgba(255,255,255,.07);--akzentbg:rgba(250,45,72,.22)}}
+html,body{margin:0;height:100%;background:transparent;color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+.kachel{box-sizing:border-box;height:100%;padding:14px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.kopf{display:flex;gap:12px;align-items:center;min-width:0}
+.cover{width:72px;height:72px;flex:none;border-radius:10px;background:var(--fl) center/cover no-repeat;display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--fg2)}
+.texte{min-width:0;flex:1}
+.titel{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.unter{font-size:13px;color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.zustand{display:inline-block;font-size:11px;margin-top:6px;padding:2px 8px;border-radius:9px;background:var(--fl);color:var(--fg2)}
+.zustand.spielt{background:var(--akzentbg);color:var(--akzent)}
+.tasten{display:flex;justify-content:center;gap:14px}
+button{font:inherit;color:var(--fg);background:var(--fl);border:1px solid var(--rand);border-radius:12px;cursor:pointer}
+button:disabled{opacity:.4;cursor:default}
+.taste{width:52px;height:44px;font-size:18px}
+.taste.haupt{width:64px;background:var(--akzentbg);border-color:transparent;color:var(--akzent)}
+.laut{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--fg2)}
+.laut input{flex:1;accent-color:var(--akzent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:13px;padding:5px 11px;border-radius:16px;background:transparent}
+.abschnitt{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--fg2);margin-bottom:5px}
+.sagen{display:flex;gap:6px}
+.sagen input{flex:1;min-width:0;font:inherit;font-size:14px;color:var(--fg);background:var(--fl);border:1px solid var(--rand);border-radius:10px;padding:7px 10px}
+.sagen button{padding:0 12px;font-size:14px}
+.meldung{font-size:12px;color:var(--fg2);min-height:1.2em}
+.aus{opacity:.55}
+</style>
+</head>
+<body>
+<div class="kachel" id="kachel"></div>
+<script>
+var daten = null;
+
+function T(k) { return (daten && daten.texte && daten.texte[k]) || k; }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); }
+
+// Aktion an die Instanz; die Antwort kommt als neue Daten über handleMessage.
+function senden(ident, wert) {
+  if (typeof requestAction === 'function') { requestAction(ident, wert); }
+}
+
+function zustandText(z) { return [T('unknown'), T('playing'), T('paused'), T('stopped')][z] || T('unknown'); }
+
+function zeichnen() {
+  var d = daten, k = document.getElementById('kachel');
+  var spielt = d.zustand === 1, an = d.erreichbar && d.steuerbar;
+  var html = '<div class="kopf' + (d.erreichbar ? '' : ' aus') + '">'
+    + '<div class="cover" id="cover">' + (d.cover ? '' : '♪') + '</div>'
+    + '<div class="texte"><div class="titel">' + esc(d.titel || T('nothing')) + '</div>'
+    + '<div class="unter">' + esc([d.interpret, d.album].filter(Boolean).join(' · ') || d.app) + '</div>'
+    + '<span class="zustand' + (spielt ? ' spielt' : '') + '">' + esc(d.erreichbar ? zustandText(d.zustand) : T('offline')) + '</span></div></div>';
+  if (d.steuerbar) {
+    html += '<div class="tasten">'
+      + '<button class="taste" ' + (an ? '' : 'disabled') + ' onclick="senden(\'Steuerung\',0)">⏮</button>'
+      + '<button class="taste haupt" ' + (an ? '' : 'disabled') + ' onclick="senden(\'Steuerung\',' + (spielt ? 2 : 1) + ')">' + (spielt ? '⏸' : '▶') + '</button>'
+      + '<button class="taste" ' + (an ? '' : 'disabled') + ' onclick="senden(\'Steuerung\',3)">⏭</button></div>'
+      + '<div class="laut">🔈<input type="range" min="0" max="100" value="' + d.lautstaerke + '" ' + (an ? '' : 'disabled')
+      + ' aria-label="' + esc(T('volume')) + '" onchange="senden(\'Lautstaerke\',+this.value)">🔊</div>';
+  }
+  if (d.favoriten && d.favoriten.length) {
+    html += '<div><div class="abschnitt">' + esc(T('favorites')) + '</div><div class="chips">'
+      + d.favoriten.map(function (n, i) { return '<button class="chip" ' + (d.erreichbar ? '' : 'disabled') + ' onclick="senden(\'Favorite\',' + i + ')">' + esc(n) + '</button>'; }).join('')
+      + '</div></div>';
+  }
+  if (d.sprache) {
+    html += '<div><div class="abschnitt">' + esc(T('say')) + '</div><div class="sagen">'
+      + '<input id="sagtext" maxlength="300" placeholder="' + esc(T('sayHint')) + '" onkeydown="if(event.key===\'Enter\'){sagen();}">'
+      + '<button onclick="sagen()">' + esc(T('send')) + '</button></div></div>';
+  }
+  html += '<div class="meldung">' + esc(d.meldung) + '</div>';
+  // Eingabe beim Neuzeichnen behalten (Aktualisierungen kommen alle paar Sekunden)
+  var alt = document.getElementById('sagtext'), text = alt ? alt.value : '', fokus = alt && document.activeElement === alt;
+  k.innerHTML = html;
+  var neu = document.getElementById('sagtext');
+  if (neu) { neu.value = text; if (fokus) { neu.focus(); } }
+  if (d.cover) { document.getElementById('cover').style.backgroundImage = 'url("' + d.cover + '")'; }
+}
+
+function sagen() {
+  var feld = document.getElementById('sagtext');
+  if (feld && feld.value.trim() !== '') { senden('Say', feld.value.trim()); feld.value = ''; }
+}
+
+function handleMessage(raw) {
+  var neu = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  // Aktualisierungen kommen ohne Texte und meist ohne Cover — die vom Aufbau behalten.
+  if (daten) {
+    if (!neu.texte) { neu.texte = daten.texte; }
+    if (neu.cover === undefined) { neu.cover = daten.cover; }
+  }
+  daten = neu;
+  zeichnen();
+}
+</script>
+</body>
+</html>

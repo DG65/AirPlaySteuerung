@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/AirPlayEreigniskanal.php';
+require_once __DIR__ . '/AirPlayAbsender.php';
 
 // ===========================================================================
 // Echtzeit-Audiostrom über AirPlay 2 (nach erfolgter Kopplung):
@@ -108,23 +109,14 @@ final class AirPlayAudioStrom
     /** Angaben zum Absender im ersten SETUP (wie ein iPhone, so wie pyatv). */
     private static function sitzungsBeschreibung(int $zeitPort): array
     {
-        return [
-            'deviceID' => 'AA:BB:CC:DD:EE:FF',
-            'sessionUUID' => AirPlayZufall::uuid(),
+        return AirPlayAbsender::setup(AirPlayAbsender::VERSION_AUDIO, [
             'timingPort' => $zeitPort,
             'timingProtocol' => 'NTP',
             'isMultiSelectAirPlay' => true,
             'groupContainsGroupLeader' => false,
-            'macAddress' => 'AA:BB:CC:DD:EE:FF',
-            'model' => 'iPhone14,3',
-            'name' => 'Symcon',
-            'osBuildVersion' => '20F66',
-            'osName' => 'iPhone OS',
-            'osVersion' => '16.5',
             'senderSupportsRelay' => false,
-            'sourceVersion' => '690.7.1',
             'statsCollectionEnabled' => false,
-        ];
+        ]);
     }
 
     // ------------------------------------------------------------------ Wiedergabe

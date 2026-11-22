@@ -53,6 +53,11 @@ trait AirPlayFormular
         '0.8.0' => [
             '• 🌐 New: online voices — the new instance "AirPlay-Sprachausgabe" speaks with Microsoft Azure, ElevenLabs or Google Cloud as well as Piper, stores the key once for all HomePods and keeps recurring texts in a cache. Select it in each AirPlay device (panel "Speech output").',
         ],
+        '0.9.0' => [
+            '• ⏰ New: alarm clock — starts a playlist quietly and raises the volume, then an optional greeting.',
+            '• 🎛️ New: player tile with artwork, controls, favorites and quick announcements.',
+            '• 🌙 New: night limit for announcements, sounds (doorbell, notice, alarm), group announcements and an announcement log.',
+        ],
     ];
 
     private static $AIRPLAY_REPO_URL     = 'https://github.com/DG65/AirPlaySteuerung';

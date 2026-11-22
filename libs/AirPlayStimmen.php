@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/AirPlayText.php';
+require_once __DIR__ . '/AirPlayHttp.php';
 require_once __DIR__ . '/AirPlayPiper.php';
 
 // ===========================================================================
@@ -50,44 +51,10 @@ final class AirPlayStimmen
         };
     }
 
-    /** Text vor dem Senden bereinigen und begrenzen (gilt für alle Dienste). */
-    public static function text(string $text): string
-    {
-        $text = trim(preg_replace('/\s+/u', ' ', $text) ?? '');
-        if ($text === '') {
-            throw new AirPlayFehler('the text is empty');
-        }
-        if (mb_strlen($text) > AirPlayPiper::MAX_ZEICHEN) {
-            throw new AirPlayFehler('the text is longer than %s characters', AirPlayPiper::MAX_ZEICHEN);
-        }
-        return $text;
-    }
-
     /** Schlüssel für den Zwischenspeicher: gleicher Dienst, gleiche Stimme, gleicher Text → gleiche Aufnahme. */
     public static function speicherKennung(string $dienst, string $stimme, string $text): string
     {
-        return substr(hash('sha256', $dienst . "\n" . $stimme . "\n" . self::text($text)), 0, 24);
-    }
-
-    /**
-     * HTTP-Anfrage ohne cURL (stream context), wie AirPlayAppleMusic.
-     * @param list<string> $kopf
-     * @return array{0:int, 1:string} [Status, Antworttext]
-     */
-    public static function http(string $methode, string $url, array $kopf, ?string $koerper = null, int $zeitlimit = 20): array
-    {
-        $kopf[] = 'User-Agent: Symcon-AirPlay-Steuerung';
-        $optionen = ['method' => $methode, 'timeout' => $zeitlimit, 'ignore_errors' => true, 'header' => implode("\r\n", $kopf) . "\r\n"];
-        if ($koerper !== null) {
-            $optionen['content'] = $koerper;
-        }
-        $antwort = @file_get_contents($url, false, stream_context_create(['http' => $optionen]));
-        $zeilen = function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []);
-        $status = isset($zeilen[0]) && preg_match('/\s(\d{3})(\s|$)/', (string)$zeilen[0], $m) === 1 ? (int)$m[1] : 0;
-        if ($antwort === false && $status === 0) {
-            throw new AirPlayFehler('%s not reachable', (string)parse_url($url, PHP_URL_HOST));
-        }
-        return [$status, (string)$antwort];
+        return substr(hash('sha256', $dienst . "\n" . $stimme . "\n" . AirPlayText::sprechtext($text)), 0, 24);
     }
 
     /** Einheitliche Fehlermeldung für HTTP-Antworten der Dienste. */
@@ -155,9 +122,9 @@ final class AirPlayAzure implements AirPlaySprachdienst
             "<speak version='1.0' xml:lang='%s'><voice name='%s'>%s</voice></speak>",
             $sprache,
             htmlspecialchars($stimme, ENT_QUOTES | ENT_XML1),
-            htmlspecialchars(AirPlayStimmen::text($text), ENT_QUOTES | ENT_XML1)
+            htmlspecialchars(AirPlayText::sprechtext($text), ENT_QUOTES | ENT_XML1)
         );
-        [$status, $antwort] = AirPlayStimmen::http('POST', "https://{$this->region}.tts.speech.microsoft.com/cognitiveservices/v1", ['Ocp-Apim-Subscription-Key: ' . trim($this->schluessel), 'Content-Type: application/ssml+xml', 'X-Microsoft-OutputFormat: riff-24khz-16bit-mono-pcm'], $ssml);
+        [$status, $antwort] = AirPlayHttp::anfrage('POST', "https://{$this->region}.tts.speech.microsoft.com/cognitiveservices/v1", ['Ocp-Apim-Subscription-Key: ' . trim($this->schluessel), 'Content-Type: application/ssml+xml', 'X-Microsoft-OutputFormat: riff-24khz-16bit-mono-pcm'], $ssml);
         if ($status !== 200 || !AirPlayStimmen::istWav($antwort)) {
             throw AirPlayStimmen::httpFehler('Azure', $status, $antwort);
         }
@@ -166,7 +133,7 @@ final class AirPlayAzure implements AirPlaySprachdienst
 
     public function stimmen(): array
     {
-        [$status, $antwort] = AirPlayStimmen::http('GET', "https://{$this->region}.tts.speech.microsoft.com/cognitiveservices/voices/list", ['Ocp-Apim-Subscription-Key: ' . trim($this->schluessel)]);
+        [$status, $antwort] = AirPlayHttp::anfrage('GET', "https://{$this->region}.tts.speech.microsoft.com/cognitiveservices/voices/list", ['Ocp-Apim-Subscription-Key: ' . trim($this->schluessel)]);
         $liste = json_decode($antwort, true);
         if ($status !== 200 || !is_array($liste)) {
             throw AirPlayStimmen::httpFehler('Azure', $status, $antwort);
@@ -198,8 +165,8 @@ final class AirPlayElevenLabs implements AirPlaySprachdienst
         if (preg_match('/^[A-Za-z0-9]{10,40}$/', $this->stimme) !== 1) {
             throw new AirPlayFehler('ElevenLabs needs a voice ID — click "Show voices" and copy one into the field "Voice"');
         }
-        $koerper = (string)json_encode(['text' => AirPlayStimmen::text($text), 'model_id' => trim($this->modell) !== '' ? trim($this->modell) : self::STANDARD_MODELL], JSON_UNESCAPED_UNICODE);
-        [$status, $antwort] = AirPlayStimmen::http('POST', 'https://api.elevenlabs.io/v1/text-to-speech/' . $this->stimme . '?output_format=wav_22050', ['xi-api-key: ' . trim($this->schluessel), 'Content-Type: application/json', 'Accept: audio/wav'], $koerper, 30);
+        $koerper = (string)json_encode(['text' => AirPlayText::sprechtext($text), 'model_id' => trim($this->modell) !== '' ? trim($this->modell) : self::STANDARD_MODELL], JSON_UNESCAPED_UNICODE);
+        [$status, $antwort] = AirPlayHttp::anfrage('POST', 'https://api.elevenlabs.io/v1/text-to-speech/' . $this->stimme . '?output_format=wav_22050', ['xi-api-key: ' . trim($this->schluessel), 'Content-Type: application/json', 'Accept: audio/wav'], $koerper, 30);
         if ($status !== 200 || !AirPlayStimmen::istWav($antwort)) {
             throw AirPlayStimmen::httpFehler('ElevenLabs', $status, $antwort);
         }
@@ -208,7 +175,7 @@ final class AirPlayElevenLabs implements AirPlaySprachdienst
 
     public function stimmen(): array
     {
-        [$status, $antwort] = AirPlayStimmen::http('GET', 'https://api.elevenlabs.io/v2/voices?page_size=100', ['xi-api-key: ' . trim($this->schluessel)]);
+        [$status, $antwort] = AirPlayHttp::anfrage('GET', 'https://api.elevenlabs.io/v2/voices?page_size=100', ['xi-api-key: ' . trim($this->schluessel)]);
         $json = json_decode($antwort, true);
         if ($status !== 200 || !is_array($json['voices'] ?? null)) {
             throw AirPlayStimmen::httpFehler('ElevenLabs', $status, $antwort);
@@ -238,8 +205,8 @@ final class AirPlayGoogle implements AirPlaySprachdienst
         // Leere Stimme: Google wählt eine deutsche Standardstimme; sonst Sprache aus dem Stimmnamen (de-DE-…).
         $sprache = preg_match('/^([a-z]{2,3}-[A-Z]{2})-/', $this->stimme, $m) === 1 ? $m[1] : 'de-DE';
         $stimme = ['languageCode' => $sprache] + ($this->stimme !== '' ? ['name' => $this->stimme] : []);
-        $koerper = (string)json_encode(['input' => ['text' => AirPlayStimmen::text($text)], 'voice' => $stimme, 'audioConfig' => ['audioEncoding' => 'LINEAR16']], JSON_UNESCAPED_UNICODE);
-        [$status, $antwort] = AirPlayStimmen::http('POST', 'https://texttospeech.googleapis.com/v1/text:synthesize', ['X-Goog-Api-Key: ' . trim($this->schluessel), 'Content-Type: application/json'], $koerper);
+        $koerper = (string)json_encode(['input' => ['text' => AirPlayText::sprechtext($text)], 'voice' => $stimme, 'audioConfig' => ['audioEncoding' => 'LINEAR16']], JSON_UNESCAPED_UNICODE);
+        [$status, $antwort] = AirPlayHttp::anfrage('POST', 'https://texttospeech.googleapis.com/v1/text:synthesize', ['X-Goog-Api-Key: ' . trim($this->schluessel), 'Content-Type: application/json'], $koerper);
         $json = json_decode($antwort, true);
         $wav = $status === 200 && is_array($json) ? base64_decode((string)($json['audioContent'] ?? ''), true) : false;
         if ($wav === false || !AirPlayStimmen::istWav($wav)) {
@@ -250,7 +217,7 @@ final class AirPlayGoogle implements AirPlaySprachdienst
 
     public function stimmen(): array
     {
-        [$status, $antwort] = AirPlayStimmen::http('GET', 'https://texttospeech.googleapis.com/v1/voices?languageCode=de-DE', ['X-Goog-Api-Key: ' . trim($this->schluessel)]);
+        [$status, $antwort] = AirPlayHttp::anfrage('GET', 'https://texttospeech.googleapis.com/v1/voices?languageCode=de-DE', ['X-Goog-Api-Key: ' . trim($this->schluessel)]);
         $json = json_decode($antwort, true);
         if ($status !== 200 || !is_array($json['voices'] ?? null)) {
             throw AirPlayStimmen::httpFehler('Google', $status, $antwort);

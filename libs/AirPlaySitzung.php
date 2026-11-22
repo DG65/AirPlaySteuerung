@@ -21,7 +21,8 @@ require_once __DIR__ . '/AirPlayFernsteuerung.php';
 
 final class AirPlaySitzung
 {
-    private const PORT = 7000;
+    /** Üblicher AirPlay-Port; Fremdgeräte melden per mDNS gelegentlich einen anderen. */
+    public const PORT = 7000;
 
     private AirPlayRtsp $rtsp;
     private ?AirPlayAudioStrom $strom = null;
@@ -31,11 +32,11 @@ final class AirPlaySitzung
     private $log;
 
     /** @param callable|null $log fn(string $text): void für Debug-Ausgaben */
-    public function __construct(private string $host, ?callable $log = null)
+    public function __construct(private string $host, ?callable $log = null, int $port = self::PORT)
     {
         $this->log = $log ?? static function (string $text): void {
         };
-        $this->rtsp = new AirPlayRtsp(new AirPlayVerbindung($host, self::PORT));
+        $this->rtsp = new AirPlayRtsp(new AirPlayVerbindung($host, $port));
     }
 
     /** Geräteinfo per GET /info (vor oder nach der Kopplung). */

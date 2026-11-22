@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/AirPlayEreigniskanal.php';
+require_once __DIR__ . '/AirPlayAbsender.php';
 require_once __DIR__ . '/AirPlayDatenkanal.php';
 require_once __DIR__ . '/AirPlayMrp.php';
 
@@ -45,19 +46,10 @@ final class AirPlayFernsteuerung
 
     public function verbinden(): void
     {
-        $sitzung = AirPlayRtsp::plist($this->rtsp->austausch('SETUP', null, [], [
+        $sitzung = AirPlayRtsp::plist($this->rtsp->austausch('SETUP', null, [], AirPlayAbsender::setup(AirPlayAbsender::VERSION_FERNSTEUERUNG, [
             'isRemoteControlOnly' => true,
-            'osName' => 'iPhone OS',
-            'sourceVersion' => '550.10',
             'timingProtocol' => 'None',
-            'model' => 'iPhone14,3',
-            'deviceID' => 'AA:BB:CC:DD:EE:FF',
-            'osVersion' => '16.5',
-            'osBuildVersion' => '20F66',
-            'macAddress' => 'AA:BB:CC:DD:EE:FF',
-            'sessionUUID' => AirPlayZufall::uuid(),
-            'name' => 'Symcon',
-        ]));
+        ])));
         $ereignisPort = (int)($sitzung['eventPort'] ?? 0);
         if ($ereignisPort === 0) {
             throw new AirPlayFehler('the device did not open an event channel');
@@ -117,11 +109,17 @@ final class AirPlayFernsteuerung
         } while (microtime(true) < $ende);
     }
 
+    /** Datenkanal für Sendungen; ohne verbundenen Kanal sofort ein klarer Fehler statt Warten bis zur Zeitgrenze. */
+    private function kanal(): AirPlayDatenkanal
+    {
+        return $this->daten ?? throw new AirPlayFehler('remote control channel not connected');
+    }
+
     /** Befehl senden (play, pause, toggle, stop, next, previous …). */
     public function befehl(string $name): void
     {
         [$nachricht, $id] = AirPlayMrp::befehl($name);
-        $this->daten?->senden($nachricht);
+        $this->kanal()->senden($nachricht);
         $this->warteAufAntwort($id, 3.0);
     }
 
@@ -129,7 +127,7 @@ final class AirPlayFernsteuerung
     public function warteschlange(string $warteschlange): void
     {
         [$nachricht, $id] = AirPlayMrp::warteschlangeSetzen($warteschlange);
-        $this->daten?->senden($nachricht);
+        $this->kanal()->senden($nachricht);
         $this->warteAufAntwort($id, 8.0);
         $ergebnis = $this->mrp->befehlsErgebnis($id);
         if ($ergebnis !== null && ($ergebnis['sendError'] !== 0 || !in_array($ergebnis['status'], [null, 0], true))) {
@@ -140,7 +138,7 @@ final class AirPlayFernsteuerung
     /** Lautstärke 0–100 % setzen; wartet kurz auf die Bestätigung. */
     public function lautstaerke(float $prozent): void
     {
-        $this->daten?->senden($this->mrp->lautstaerkeSetzen($prozent)[0]);
+        $this->kanal()->senden($this->mrp->lautstaerkeSetzen($prozent)[0]);
         $ende = microtime(true) + 3.0;
         while (($this->mrp->lautstaerke === null || abs($this->mrp->lautstaerke - $prozent) > 1.0) && microtime(true) < $ende) {
             $this->bedienen(0.1);
@@ -150,7 +148,7 @@ final class AirPlayFernsteuerung
     /** Wiedergabeliste mit Cover anfordern (Antwort kommt als SET_STATE). */
     public function coverAnfordern(int $hoehe = 400): void
     {
-        $this->daten?->senden(AirPlayMrp::warteschlange($hoehe)[0]);
+        $this->kanal()->senden(AirPlayMrp::warteschlange($hoehe)[0]);
     }
 
     public function bedienen(float $sekunden): void

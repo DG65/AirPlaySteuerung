@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/AirPlayKrypto.php';
+require_once __DIR__ . '/AirPlayHttp.php';
 
 // ===========================================================================
 // Apple-Music-Inhalte für die Wiedergabe auf HomePod/Apple TV vorbereiten.
@@ -60,16 +61,8 @@ final class AirPlayAppleMusic
 
     public static function seiteLaden(string $link): string
     {
-        $kontext = stream_context_create(['http' => [
-            'timeout' => 15,
-            'header' => "User-Agent: Mozilla/5.0 (Symcon AirPlay-Steuerung)\r\nAccept-Language: de,en\r\n",
-            'ignore_errors' => true,
-        ]]);
-        $html = @file_get_contents($link, false, $kontext);
-        // ab PHP 8.4 Funktion, $http_response_header ist ab 8.5 veraltet
-        $kopf = function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []);
-        $status = isset($kopf[0]) && preg_match('/\s(\d{3})(\s|$)/', (string)$kopf[0], $m) === 1 ? (int)$m[1] : 0;
-        if ($html === false || $status !== 200) {
+        [$status, $html] = AirPlayHttp::anfrage('GET', $link, ['Accept-Language: de,en'], null, 15);
+        if ($status !== 200) {
             throw new AirPlayFehler('Apple Music page could not be loaded (HTTP %s)', $status ?: '–');
         }
         return $html;

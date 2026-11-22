@@ -87,13 +87,20 @@ final class AirPlayVerbindung
             return true;
         }
         $this->rohEin .= $stueck;
-        while (strlen($this->rohEin) >= 2) {
-            $laenge = unpack('v', substr($this->rohEin, 0, 2))[1];
-            if (strlen($this->rohEin) < 2 + $laenge + 16) {
+        // Rahmen über einen Lesezeiger zerlegen und den Puffer nur einmal kürzen (große Antworten wie Cover
+        // bestehen aus vielen 1-KB-Rahmen; je Rahmen umkopieren wüchse quadratisch).
+        $pos = 0;
+        $gesamt = strlen($this->rohEin);
+        while ($gesamt - $pos >= 2) {
+            $laenge = unpack('v', $this->rohEin, $pos)[1];
+            if ($gesamt - $pos < 2 + $laenge + 16) {
                 break;
             }
-            $this->klarEin .= $this->chiffre->decrypt(substr($this->rohEin, 2, $laenge + 16), substr($this->rohEin, 0, 2));
-            $this->rohEin = substr($this->rohEin, 2 + $laenge + 16);
+            $this->klarEin .= $this->chiffre->decrypt(substr($this->rohEin, $pos + 2, $laenge + 16), substr($this->rohEin, $pos, 2));
+            $pos += 2 + $laenge + 16;
+        }
+        if ($pos > 0) {
+            $this->rohEin = substr($this->rohEin, $pos);
         }
         return true;
     }

@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 $basis = dirname(__DIR__);
 require_once $basis . '/libs/AirPlayAblauf.php';
+require_once $basis . '/libs/AirPlayRtsp.php';
 require_once $basis . '/libs/AirPlayAudio.php';
 require_once $basis . '/libs/AirPlayGeraete.php';
 require_once $basis . '/libs/AirPlayKlimaDaten.php';
@@ -16,6 +17,9 @@ require_once $basis . '/libs/AirPlayPiper.php';
 require_once $basis . '/libs/AirPlayZeitplan.php';
 require_once $basis . '/libs/AirPlayWarteschlange.php';
 require_once $basis . '/libs/AirPlayStimmen.php';
+require_once $basis . '/libs/AirPlayLautstaerke.php';
+require_once $basis . '/libs/AirPlayProtokoll.php';
+require_once $basis . '/libs/AirPlayGruppe.php';
 
 $fehler = 0;
 $anzahl = 0;
@@ -171,8 +175,17 @@ try {
 } catch (AirPlayFehler $e) {
     pruefe('Nicht-WAV abgelehnt', $e->vorlage === 'not a WAV file');
 }
-$g = AirPlayAudio::gong();
-pruefe('Gong 1,2 s', strlen($g) === (int)(1.2 * 44100) * 4);
+$laengen = array_map(fn (string $k) => strlen(AirPlayAudio::klang($k)), array_keys(AirPlayAudio::KLAENGE));
+pruefe('Klänge: Länge = Dauer × 44,1 kHz × 4 Byte, Gong 1,2 s', $laengen === array_map(fn ($k) => (int)($k['dauer'] * 44100) * 4, array_values(AirPlayAudio::KLAENGE)) && $laengen[0] === (int)(1.2 * 44100) * 4);
+$alarm = AirPlayAudio::klang('alarm');
+$spitze = max(array_map('abs', array_map(fn ($w) => $w >= 32768 ? $w - 65536 : $w, unpack('n*', $alarm))));
+pruefe('Klänge ohne Übersteuerung', $spitze < 32767 && $spitze > 5000, (string)$spitze);
+try {
+    AirPlayAudio::klang('hupe');
+    pruefe('unbekannter Klang abgelehnt', false);
+} catch (AirPlayFehler $e) {
+    pruefe('unbekannter Klang abgelehnt', $e->vorlage === 'unknown sound %s');
+}
 pruefe('Lautstärke in dB', AirPlayAudioStrom::lautstaerkeDb(30) === -21.0 && AirPlayAudioStrom::lautstaerkeDb(0) === -144.0 && AirPlayAudioStrom::lautstaerkeDb(100) === 0.0);
 
 echo "Store-Regeln (statisch)\n";
@@ -180,14 +193,51 @@ $lib = json_decode((string)file_get_contents($basis . '/library.json'), true);
 $felder = array_keys($lib);
 sort($felder);
 pruefe('library.json genau 8 Felder', $felder === ['author', 'build', 'compatibility', 'date', 'id', 'name', 'url', 'version'] && isset($lib['compatibility']['version']));
-foreach (['AirPlayGeraet', 'AirPlayKonfigurator', 'AirPlayKlima', 'AirPlaySprache'] as $m) {
+foreach (array_map('basename', array_map('dirname', glob("$basis/*/module.json"))) as $m) {
+    // Modulcode = module.php plus die Traits, die es aus libs/ einbindet
     $code = (string)file_get_contents("$basis/$m/module.php");
+    preg_match_all("/libs\/($m\w+)\.php/", $code, $traits);
+    foreach ($traits[1] as $t) {
+        $code .= (string)file_get_contents("$basis/libs/$t.php");
+    }
     pruefe("$m: kein IPS_LogMessage", !str_contains($code, 'IPS_LogMessage'));
     pruefe("$m: keine Selbstpersistenz (IPS_SetProperty/ApplyChanges auf die eigene Instanz)", !preg_match('/IPS_(SetProperty|ApplyChanges)\(\$this->InstanceID/', $code));
     pruefe("$m: locale.json = libs/locale.json", file_get_contents("$basis/$m/locale.json") === file_get_contents("$basis/libs/locale.json"));
     $mj = json_decode((string)file_get_contents("$basis/$m/module.json"), true);
     pruefe("$m: vendor Apple, Präfix gesetzt", $mj['vendor'] === 'Apple' && in_array($mj['prefix'], ['AIRP', 'AIRPC', 'AIRPK', 'AIRPS'], true));
 }
+echo "RTSP\n";
+$server = stream_socket_server('tcp://127.0.0.1:0');
+$port = (int)substr((string)stream_socket_get_name($server, false), strrpos((string)stream_socket_get_name($server, false), ':') + 1);
+$rtsp = new AirPlayRtsp(new AirPlayVerbindung('127.0.0.1', $port));
+$gegenueber = stream_socket_accept($server, 2);
+// liegen gebliebene Antwort auf /feedback (CSeq 0) vor der eigentlichen Antwort (CSeq 1)
+fwrite($gegenueber, "RTSP/1.0 200 OK\r\nCSeq: 0\r\nContent-Length: 0\r\n\r\n" . "RTSP/1.0 200 OK\r\nCSeq: 1\r\nContent-Length: 5\r\n\r\nrecht");
+$rtsp->sendenOhneAntwort('POST', '/feedback');
+$antwort = $rtsp->austausch('GET_PARAMETER');
+pruefe('RTSP-Antwort per CSeq zugeordnet (fremde Antwort übersprungen)', $antwort['koerper'] === 'recht' && $antwort['kopf']['cseq'] === '1');
+fclose($gegenueber);
+// verschlüsselte Rahmen (je 1 KB), in zwei ungeraden Stücken angeliefert
+$schluesselA = str_repeat('a', 32);
+$schluesselB = str_repeat('b', 32);
+$v = new AirPlayVerbindung('127.0.0.1', $port);
+$gegenueber = stream_socket_accept($server, 2);
+$v->verschluesseln($schluesselA, $schluesselB);
+$sender = new AirPlayChaCha($schluesselB, $schluesselA);
+$klar = random_bytes(5000);
+$roh = '';
+foreach (str_split($klar, 1024) as $block) {
+    $laenge = pack('v', strlen($block));
+    $roh .= $laenge . $sender->encrypt($block, $laenge);
+}
+foreach ([substr($roh, 0, 1500), substr($roh, 1500)] as $stueck) {
+    fwrite($gegenueber, $stueck);
+    usleep(20000);
+    $v->einlesen();
+}
+pruefe('verschlüsselte Rahmen über Stückgrenzen entschlüsselt', $v->klarAbholen() === $klar);
+fclose($gegenueber);
+
 echo "Piper (Wyoming)\n";
 pruefe('Adresse host / host:port / [IPv6]:port / IPv6',
     AirPlayPiper::adresse('nas') === ['nas', 10200] && AirPlayPiper::adresse('192.168.2.5:10300') === ['192.168.2.5', 10300]
@@ -233,8 +283,12 @@ pruefe('halbstündlich', AirPlayZeitplan::passt(['When' => 'halfhourly'] + $stue
 $werktags = ['When' => 'daily', 'Time' => '7:30', 'Days' => 'weekdays'] + $stuendlich;
 pruefe('täglich Mo–Fr: Samstag still, nächster Termin Montag 07:30', !AirPlayZeitplan::passt($werktags, mktime(7, 30, 0, 11, 21, 2026))
     && AirPlayZeitplan::naechste([$werktags], $sa) === mktime(7, 30, 0, 11, 23, 2026));
-pruefe('aus / ohne Text / falsche Uhrzeit zählen nicht', !AirPlayZeitplan::passt(['Active' => false] + $stuendlich, $sa)
-    && !AirPlayZeitplan::passt(['Text' => ' '] + $stuendlich, $sa) && AirPlayZeitplan::uhrzeit('25:00') === null
+$gueltig = AirPlayZeitplan::eintraege([['Active' => false] + $stuendlich, ['Text' => ' '] + $stuendlich, $stuendlich], [
+    ['Active' => true, 'Time' => '06:30', 'Days' => 'all', 'Link' => ''], ['Active' => true, 'Time' => '06:30', 'Days' => 'all', 'Link' => 'Morgen'],
+]);
+pruefe('eintraege: aus / ohne Text / ohne Link fallen weg, Art und täglich gesetzt', count($gueltig) === 2 && $gueltig[0]['Art'] === 'ansage'
+    && $gueltig[1]['Art'] === 'wecker' && $gueltig[1]['When'] === 'daily' && AirPlayZeitplan::passt($gueltig[1], mktime(6, 30, 0, 11, 21, 2026)));
+pruefe('falsche Uhrzeit zählt nicht', AirPlayZeitplan::uhrzeit('25:00') === null
     && AirPlayZeitplan::naechste([['When' => 'daily', 'Time' => 'x'] + $stuendlich], $sa) === null);
 pruefe('nächster Termin: laufende Minute nur exakt auf :00', AirPlayZeitplan::naechste([$stuendlich], $sa) === $sa
     && AirPlayZeitplan::naechste([$stuendlich], $sa + 1) === $sa + 3600);
@@ -292,6 +346,24 @@ pruefe('HTTP-Fehler: 401 Azure mit Region, 401 sonst, 429, Text aus JSON',
     && AirPlayStimmen::httpFehler('Google', 400, '{"error":{"message":"API key not valid."}}')->getMessage() === 'Google answers HTTP 400: API key not valid.');
 pruefe('WAV-Erkennung', AirPlayStimmen::istWav(AirPlayPiper::wavKopf(24000, 2, 1, str_repeat("\0", 100))) && !AirPlayStimmen::istWav('{"detail":"x"}'));
 
+echo "Lautstärke, Protokoll, Gruppen\n";
+$nacht = ['aktiv' => true, 'max' => 15, 'von' => 22, 'bis' => 7];
+$um = fn (int $h) => mktime($h, 0, 0, 11, 21, 2026);
+pruefe('Nachtgrenze: nachts begrenzt, unverändert → Maximum, tagsüber frei, aus = frei',
+    AirPlayLautstaerke::nachtgrenze(40.0, $nacht, $um(23)) === 15.0 && AirPlayLautstaerke::nachtgrenze(10.0, $nacht, $um(3)) === 10.0
+    && AirPlayLautstaerke::nachtgrenze(null, $nacht, $um(6)) === 15.0 && AirPlayLautstaerke::nachtgrenze(40.0, $nacht, $um(12)) === 40.0
+    && AirPlayLautstaerke::nachtgrenze(40.0, ['aktiv' => false] + $nacht, $um(23)) === 40.0);
+pruefe('Rampe: Anfang, Mitte, Ende, danach, ohne Dauer',
+    AirPlayLautstaerke::rampe(5, 30, 600, 0) === 5.0 && AirPlayLautstaerke::rampe(5, 30, 600, 300) === 18.0
+    && AirPlayLautstaerke::rampe(5, 30, 600, 600) === 30.0 && AirPlayLautstaerke::rampe(5, 30, 600, 9999) === 30.0 && AirPlayLautstaerke::rampe(5, 30, 0, 0) === 30.0);
+$p = [];
+for ($n = 1; $n <= 25; $n++) {
+    $p = AirPlayProtokoll::eintragen($p, ['zeit' => $n, 'quelle' => 'script', 'text' => str_repeat('x', 200), 'ok' => true, 'info' => '']);
+}
+pruefe('Protokoll: neueste zuerst, höchstens 20, Text gekürzt', count($p) === AirPlayProtokoll::MAX && $p[0]['zeit'] === 25 && mb_strlen($p[0]['text']) === 120);
+pruefe('Gruppen: leer = alle, ohne Groß-/Kleinschreibung, Leerzeichen egal, keine Teilwörter',
+    AirPlayGruppe::enthaelt('', '') && AirPlayGruppe::enthaelt('Erdgeschoss, Küche', ' küche ') && !AirPlayGruppe::enthaelt('Küchenzeile', 'Küche') && !AirPlayGruppe::enthaelt('', 'Bad'));
+
 exec('php ' . escapeshellarg(__DIR__ . '/texte-sammeln.php'), $aus, $rc);
 pruefe('alle Texte in locale.json', $rc === 0, implode(' ', $aus));
 
@@ -309,7 +381,7 @@ if ($i !== false || $k !== false) {
         pruefe('Kopplung und verschlüsseltes /info', ($info2['name'] ?? '') !== '' && ($info2['name'] ?? '') === ($info['name'] ?? ''), (string)($info2['name'] ?? ''));
         if ($i !== false) {
             $sitzung->audioEinrichten();
-            $r = $sitzung->abspielen(AirPlayAudio::gong(), 25.0);
+            $r = $sitzung->abspielen(AirPlayAudio::klang('gong'), 25.0);
             pruefe('Gong gestreamt', $r['verspaetet'] < 10, sprintf('%d Pakete, %.2f s, %d verspätet', $r['pakete'], $r['dauer'], $r['verspaetet']));
         }
     } catch (Throwable $e) {

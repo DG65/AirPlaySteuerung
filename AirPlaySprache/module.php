@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/AirPlayFormular.php';
 require_once __DIR__ . '/../libs/AirPlayStimmen.php';
+require_once __DIR__ . '/../libs/AirPlayGruppe.php';
+require_once __DIR__ . '/../libs/AirPlayZeitplan.php';
 
 // ===========================================================================
 // AirPlay-Sprachausgabe — macht aus Text eine WAV-Datei für die HomePods.
@@ -24,6 +26,7 @@ class AirPlaySprache extends IPSModule
 {
     use AirPlayFormular;
 
+    private const GUID_GERAET = '{2BB8B63A-9A5A-4704-8230-C18259F9F3E7}';
     private const STATUS_SCHLUESSEL_FEHLT = 201;
     private const STATUS_SERVER_FEHLT = 202;
     /** Stimmen-Kennung für den Zwischenspeicher, wenn das Feld leer ist (Standard des Dienstes). */
@@ -97,6 +100,29 @@ class AirPlaySprache extends IPSModule
         }
     }
 
+    /**
+     * Durchsage an alle AirPlay-Geräte einer Gruppe, die diese Sprachausgabe nutzen (leere Gruppe = alle).
+     * Erzeugt die Sprache einmal vorab (Zwischenspeicher) und reiht sie je Gerät ein — die Geräte sprechen
+     * gleichzeitig, aber nicht taktgenau synchron. Rückgabe: Zahl der Geräte, bei denen eingereiht wurde.
+     */
+    public function SayGroup(string $Group, string $Text, int $Volume, bool $Chime): int
+    {
+        $text = AirPlayPlatzhalter::ersetzen($Text, time(), fn (int $id): ?string => @IPS_VariableExists($id) ? (string)GetValueFormatted($id) : null);
+        $this->GetSpeech($text);   // füllt den Zwischenspeicher, damit nicht jedes Gerät einzeln beim Dienst anfragt
+        $anzahl = 0;
+        foreach (IPS_GetInstanceListByModuleID(self::GUID_GERAET) as $geraet) {
+            if (IPS_GetProperty($geraet, 'SpeechInstance') === $this->InstanceID
+                && AirPlayGruppe::enthaelt((string)IPS_GetProperty($geraet, 'Groups'), $Group)
+                && AIRP_SayAsync($geraet, $text, $Volume, $Chime)) {
+                $anzahl++;
+            }
+        }
+        if ($anzahl === 0) {
+            $this->LogMessage(AirPlayText::t('Group announcement "%s": no AirPlay device found that uses this speech output and belongs to the group.', $Group), KL_WARNING);
+        }
+        return $anzahl;
+    }
+
     /** Grund des letzten Fehlers von GetSpeech (leer, wenn alles geklappt hat). */
     public function GetLastError(): string
     {
@@ -160,6 +186,12 @@ class AirPlaySprache extends IPSModule
         $bytes = (int)@unpack('V', substr($wav, 40, 4))[1];
         $sekunden = !empty($kopf['rate']) ? $bytes / 2 / max(1, (int)$kopf['kanaele']) / $kopf['rate'] : 0;
         echo AirPlayText::t('✅ Speech created: %1$s s of audio in %2$s s. Play it with "🗣️ Speak" in an AirPlay device.', number_format($sekunden, 1, ',', ''), number_format(microtime(true) - $start, 1, ',', ''));
+    }
+
+    public function UIGroup(string $Group, string $Text): void
+    {
+        $anzahl = $this->SayGroup($Group, $Text, -1, true);
+        echo $anzahl > 0 ? AirPlayText::t('✅ Queued on %s devices.', $anzahl) : AirPlayText::t('❌ No device in this group — check the field "Groups" in the AirPlay devices.');
     }
 
     public function UIClearCache(): void
@@ -300,6 +332,7 @@ class AirPlaySprache extends IPSModule
             'ElevenLabs: sign up on elevenlabs.io, create an API key in the profile. The free plan includes about 10,000 characters per month. Enter a voice ID ("Show voices").',
             'Google Cloud: create a project, enable "Cloud Text-to-Speech API", set up billing and create an API key (restrict it to this API). Without a voice, Google picks a German standard voice.',
             'Cache: identical texts with the same voice are created only once and then played from Symcon — the hourly time announcement, for example, costs quota only on the first day. The recordings are hidden sound media below this instance.',
+            'Group announcement: AIRPS_SayGroup(id, group, text, volume, chime) speaks on all AirPlay devices that use this instance and belong to the group (field "Groups" in the device; empty group = all). Returns the number of devices.',
             'Scripts: AIRPS_GetSpeech(id, text) returns the WAV file as Base64 (empty on error, reason via AIRPS_GetLastError(id)); AIRPS_ClearCache(id) deletes all recordings.',
         ];
     }
@@ -336,6 +369,17 @@ class AirPlaySprache extends IPSModule
                 ]],
             ],
         ];
+        $gruppe = [
+            'type' => 'ExpansionPanel', 'expanded' => false, 'caption' => '📣  Group announcement',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'Speaks on all AirPlay devices that use this speech output and carry the group in their field "Groups" (panel "Announcements"). Empty group = all devices. Scripts: AIRPS_SayGroup(id, group, text, volume, chime).'],
+                ['type' => 'RowLayout', 'items' => [
+                    ['type' => 'ValidationTextBox', 'name' => 'GroupName', 'caption' => 'Group', 'width' => '200px'],
+                    ['type' => 'ValidationTextBox', 'name' => 'GroupText', 'caption' => 'Text', 'value' => AirPlayText::t('This is a test of the speech output.'), 'width' => '360px'],
+                    ['type' => 'Button', 'caption' => '📣 Announce', 'onClick' => 'AIRPS_UIGroup($id, $GroupName, $GroupText);'],
+                ]],
+            ],
+        ];
         $speicher = [
             'type' => 'ExpansionPanel', 'expanded' => false, 'caption' => '💾  Cache',
             'items' => [
@@ -345,7 +389,7 @@ class AirPlaySprache extends IPSModule
                 ['type' => 'Button', 'caption' => '🗑️ Clear cache', 'onClick' => 'AIRPS_UIClearCache($id);', 'confirm' => 'Delete all stored recordings?'],
             ],
         ];
-        return $this->airplayFormular([$einstellungen, $speicher], [], [
+        return $this->airplayFormular([$einstellungen, $gruppe, $speicher], [], [
             ['code' => 102, 'icon' => 'active', 'caption' => 'Ready'],
             ['code' => self::STATUS_SCHLUESSEL_FEHLT, 'icon' => 'inactive', 'caption' => 'Please save the API key'],
             ['code' => self::STATUS_SERVER_FEHLT, 'icon' => 'inactive', 'caption' => 'Please enter the Piper server'],

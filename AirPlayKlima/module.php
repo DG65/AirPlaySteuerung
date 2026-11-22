@@ -48,7 +48,7 @@ class AirPlayKlima extends IPSModule
         $this->RegisterAttributeInteger('LastReceived', 0);
         $this->RegisterAttributeString('Rooms', '{}');
         $this->RegisterTimer('Trigger', 0, 'AIRPK_Trigger($_IPS[\'TARGET\']);');
-        $this->RegisterTimer('TriggerOff', 0, 'AIRPK_TriggerOff($_IPS[\'TARGET\']);');
+        $this->RegisterTimer('TriggerOff', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], \'TriggerOff\', 0);');
         $this->registerFormAttributes();
     }
 
@@ -92,13 +92,11 @@ class AirPlayKlima extends IPSModule
 
     public function RequestAction($Ident, $Value)
     {
-        if ($Ident !== 'Trigger') {
-            throw new Exception('Invalid Ident');
-        }
-        $this->SetValue('Trigger', (bool)$Value);
-        if ((bool)$Value) {
-            $this->SetTimerInterval('TriggerOff', self::SCHALTDAUER * 1000);
-        }
+        match ($Ident) {
+            'Trigger' => (bool)$Value ? $this->Trigger() : $this->ausschalten(),
+            'TriggerOff' => $this->ausschalten(),   // intern: Timer „TriggerOff"
+            default => throw new Exception('Invalid Ident'),
+        };
     }
 
     // ------------------------------------------------------------------ öffentlich
@@ -111,8 +109,8 @@ class AirPlayKlima extends IPSModule
         $this->SetTimerInterval('TriggerOff', self::SCHALTDAUER * 1000);
     }
 
-    /** Auslöse-Schalter wieder aus (intern, Timer). */
-    public function TriggerOff(): void
+    /** Auslöse-Schalter wieder aus (Timer „TriggerOff" bzw. Ausschalten von Hand). */
+    private function ausschalten(): void
     {
         $this->SetTimerInterval('TriggerOff', 0);
         $this->SetValue('Trigger', false);

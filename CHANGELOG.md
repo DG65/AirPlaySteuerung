@@ -1,6 +1,33 @@
 # Changelog
 
-## 0.8.0 (unveröffentlicht)
+## 0.9.0 (unveröffentlicht)
+
+- Neu: **Wecker** — Liste im Gerät: Uhrzeit, Tage, Playlist (Link oder Favorit), Lautstärke steigt von Start auf Ende
+  über einstellbare Minuten (Schritt alle 20 s), danach optionaler Gruß. Pausieren beendet den Anstieg.
+- Neu: **Klänge** Gong, Türklingel, Hinweiston, Alarm (`AIRP_PlaySound`); geplante Ansagen wählen den Klang davor
+  (Spalte „Klang" ersetzt „Gong" — bestehende Zeilen mit Gong bleiben beim Gong, bis die Liste neu gespeichert wird).
+- Neu: **Nachtgrenze** für alle Durchsagen (Stundenfenster, Höchstlautstärke).
+- Neu: **Gruppen-Durchsage** `AIRPS_SayGroup(id, gruppe, text, lautstärke, gong)` und Feld „Gruppen" im Gerät;
+  Sprache wird einmal erzeugt und je Gerät eingereiht.
+- Neu: **Player-Kachel** (Cover, Titel, Steuerung, Lautstärke, Favoriten, schnelle Ansage) und Favoritenliste.
+- Neu: **Durchsage-Protokoll** (letzte 20) im Formular.
+- Umbau: AirPlay-Gerät in Klasse + vier Traits (Durchsage, Wiedergabe, Zeitplan, Oberfläche); gemeinsamer
+  HTTP-Baustein; Sprechtext-Regel an einer Stelle; Übersetzungen mit Merkliste. Interne Timer laufen über
+  `RequestAction` — die öffentlichen Funktionen `AIRP_RunQueue` und `AIRP_RunSchedule` entfallen (nur intern genutzt).
+- Prüfstand: neuer Modulprüfstand `.tools/test-module.php` mit Symcon-Attrappe (Gerät und Sprachausgabe offline).
+- Fix (Code-Prüfung): WAV-Umrechnung blockweise — eine 60-s-Ansage brauchte bis zu ~300 MB Speicher, jetzt ~24 MB;
+  Ergebnis bitgenau wie vorher (36 Formate verglichen).
+- Fix: Scheitert nach einer Durchsage das Fortsetzen oder Zurückstellen der Lautstärke, gilt die Durchsage trotzdem
+  als gespielt (Hinweis statt Fehler).
+- Fix: Titel ohne Cover (Radio, Podcast) lösten bei jeder Abfrage eine Cover-Anfrage mit bis zu 3 s Wartezeit aus.
+- Fix: RTSP-Antworten werden über die CSeq zugeordnet; Rahmen-Entschlüsselung ohne quadratisches Umkopieren; ohne
+  Fernsteuerkanal sofort ein klarer Fehler statt Warten.
+- Neu: Port je Gerät (aus der Netzwerksuche übernommen, Standard 7000) für AirPlay-Empfänger anderer Hersteller.
+- Umbau: Absender-Angaben in `AirPlayAbsender` (Werte unverändert), letztes Ergebnis strukturiert gespeichert,
+  alter Piper-Weg über denselben Sprachdienst wie die Sprachausgabe, Kachel nur bei Änderung senden, AirPlay-Klima
+  schaltet intern über `RequestAction` (`AIRPK_TriggerOff` entfällt; `AIRPK_Trigger` bleibt).
+
+## 0.8.0 (21.11.2026)
 
 - Neu: Modul „AirPlay-Sprachausgabe" (`AIRPS`) — eine Instanz für alle HomePods: Sprachdienst Piper (eigenes Netz),
   Microsoft Azure, ElevenLabs oder Google Cloud; Schlüssel als Attribut (nicht im Formular, nicht im Export);

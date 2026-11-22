@@ -5,7 +5,7 @@ no Docker, no additional software on the Symcon host.
 
 [Deutsche Version](README.md)
 
-> **Status: beta 0.8.0.** Announcements, resuming afterwards, display and control have been tested on
+> **Status: beta 0.9.0.** Announcements, resuming afterwards, display and control have been tested on
 > HomePod (1st generation) and HomePod mini. Apple TV with tvOS follows the same reference, but has not
 > been tested on real hardware yet.
 
@@ -26,7 +26,16 @@ no Docker, no additional software on the Symcon host.
   Cloud. Identical texts are cached (section below).
 - **Scheduled announcements:** list in the form — every full or half hour (e.g. "It is {time}." from 7 am to
   10 pm) or daily at a set time, every day, Mon–Fri or Sat–Sun, optionally with a chime first.
-- **Chime:** a two-tone chime for testing or as a lead-in, no audio file needed.
+- **Alarm clock:** starts an Apple Music playlist quietly at the set time and raises the volume over a few minutes,
+  followed by an optional greeting ("Good morning, it is {time}").
+- **Sounds:** chime, doorbell, notice and alarm — purely synthetic, no audio file; selectable as a lead-in.
+- **Night limit:** during set hours, no announcement plays louder than X % — including WarnHub, Automat and the
+  schedule.
+- **Several HomePods:** groups per device ("Ground floor, Kitchen"); `AIRPS_SayGroup` speaks on all devices of a
+  group.
+- **Player tile:** artwork, title, ⏮ ⏯ ⏭, volume, favorite playlists and a field for quick announcements.
+- **Announcement log:** the last 20 announcements with source (script, queue, schedule, alarm clock, tile) and
+  result in the form.
 - **AirPlay-Klima:** temperature and humidity of HomePod mini and HomePod (2nd generation) as real
   variables — through an Apple Home automation that Symcon triggers via its HomeKit bridge at a set interval
   (guide in the form and below).
@@ -68,8 +77,12 @@ AIRP_SayAsync(12345, 'The front door is open.', -1, true);
 // Placeholders: {time}, {weekday}, {date}, {var:ID} (value with unit)
 AIRP_Say(12345, 'Good morning, today is {weekday}, {date}. Outside it is {var:23456}.');
 
-AIRP_PlayChime(12345);        // chime
-AIRP_TestConnection(12345);   // pair only, no sound
+AIRP_PlaySound(12345, 'doorbell');   // sound: gong, doorbell, notice, alarm
+AIRP_PlayChime(12345);               // chime
+AIRP_TestConnection(12345);          // pair only, no sound
+
+// Group: all devices of speech output instance 34567 in group "Ground floor" (empty = all)
+AIRPS_SayGroup(34567, 'Ground floor', 'Dinner is ready.', -1, true);
 
 // Control
 AIRP_Play(12345); AIRP_Pause(12345); AIRP_Stop(12345);
@@ -79,6 +92,7 @@ AIRP_Update(12345);           // refresh the display now
 
 // Apple Music: share link of a playlist/album or song IDs, true = shuffle
 AIRP_PlayPlaylist(12345, 'https://music.apple.com/us/playlist/…/pl.u-…', true);
+AIRP_PlayPlaylist(12345, 'Morning music', true);   // name of a favorite
 ```
 
 **Apple Music:** the module reads the song list from the public Apple Music page of the link and hands it
@@ -173,7 +187,8 @@ Home automations sometimes stop running; switching them off and on again helps. 
   apps are still missing.
 - AirPlay 2 receivers from other manufacturers (e.g. AV receivers) are shown as "⚠️ untested": they
   offer the required pairing, but nobody has tried them yet. Feedback is welcome.
-- Stereo pairs and groups of several HomePods have not been tested yet.
+- Stereo pairs have not been tested yet. Group announcements play on all devices at the same time, but not
+  sample-synchronous (each device gets its own stream).
 
 ## How it works
 

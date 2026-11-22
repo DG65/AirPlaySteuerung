@@ -95,8 +95,7 @@ class AirPlayKonfigurator extends IPSModule
     private static function typText(array $g): string
     {
         return match ($g['familie']) {
-            'homepod' => AirPlayText::t($g['modellText']),
-            'appletv', 'appletv_alt', 'airport' => AirPlayText::t($g['modellText']),
+            'homepod', 'appletv', 'appletv_alt', 'airport' => AirPlayText::t($g['modellText']),
             'mac' => 'Mac',
             default => trim(($g['hersteller'] !== '' ? $g['hersteller'] . ' ' : '') . $g['modellText']) ?: AirPlayText::t('AirPlay receiver'),
         };
@@ -145,7 +144,7 @@ class AirPlayKonfigurator extends IPSModule
             if ($g['durchsage'] !== 'nein' || $treffer !== 0) {
                 $zeile['create'] = [
                     'moduleID' => self::GERAET,
-                    'configuration' => ['Host' => $g['adresse'], 'DeviceID' => $g['deviceId'], 'Model' => self::typText($g), 'RemoteControl' => $g['steuerung']],
+                    'configuration' => ['Host' => $g['adresse'], 'Port' => $g['port'], 'DeviceID' => $g['deviceId'], 'Model' => self::typText($g), 'RemoteControl' => $g['steuerung']],
                     'name' => $g['name'],
                 ];
             }

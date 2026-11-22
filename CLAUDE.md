@@ -25,6 +25,16 @@
 - Fehler der Bibliotheken als `AirPlayFehler` (englische Vorlage + Werte), übersetzt im Modul über
   `AirPlayText::fehler()`. Texte: `.tools/locale-de.php` erzeugt alle locale.json, `.tools/texte-sammeln.php` prüft.
 - Anzeige per Timer-Abfrage statt Dauerverbindung (Entscheidung 20.11.2026): je Abfrage ~2 s, Standard 15 s.
+- **AirPlay-Gerät (ab 0.9.0):** `AirPlayGeraet/module.php` = Lebenszyklus, `RequestAction`-Verteiler, Infrastruktur
+  (`mitSperre`, `exklusiv`, `ablauf`, `ergebnis`/`fehler`). Fachlogik in Traits unter libs/: `AirPlayGeraetDurchsage`
+  (alle Wege enden in `durchsageAbspielen`: Lautstärke inkl. Nachtgrenze → Sperre → Sitzung → Ergebnis → Protokoll →
+  Kachel), `AirPlayGeraetWiedergabe` (MRP, Apple Music, Favoriten, Variablen), `AirPlayGeraetZeitplan` (Ansagen +
+  Wecker über einen Timer, Rampe), `AirPlayGeraetOberflaeche` (Formular-Panels, Kachel `AirPlayGeraet/module.html`).
+  Interne Timer → `IPS_RequestAction(…, 'RunQueue'|'RunSchedule'|'RunRamp')`, keine öffentlichen Run-Funktionen.
+- Reine Regeln ohne Symcon: `AirPlayLautstaerke` (Nachtgrenze, Rampe), `AirPlayProtokoll`, `AirPlayWarteschlange`, `AirPlayGruppe`,
+  `AirPlayZeitplan` (+ Platzhalter), `AirPlayHttp`, `AirPlayText::sprechtext` (eine Sprechtext-Regel für alle Dienste).
+- Prüfstände: `.tools/test-airplay.php` (Bibliotheken, Store-Regeln inkl. Traits, Texte) und `.tools/test-module.php`
+  (Module in `.tools/symcon-attrappe.php`, Sprache aus `.tools/wyoming-attrappe.php`). Beide vor jedem Commit.
 
 ## Protokoll — belegte Fakten (20.11.2026, HomePod 1. Gen. + mini, tvOS 27.2.1)
 
@@ -120,6 +130,12 @@
   vorhanden → Companion/MRP fürs Apple TV nur nach Vorlage, Test über Forum-Tester.
 
 ## Offen / nächste Stufen
+
+- **Ein Kanal-Verteiler für Audio + MRP (Code-Prüfung 22.11.2026, zurückgestellt):** `AirPlayAudioStrom::bedienen` und
+  `AirPlayFernsteuerung::bedienen` sind getrennte `stream_select`-Verteiler und setzen beide den Warte-Haken des
+  gemeinsamen `AirPlayRtsp`; deshalb braucht eine Durchsage mit Fortsetzen drei Kopplungen (lesen, spielen,
+  wiederherstellen). Ziel: ein Verteiler in der Sitzung, bei dem sich Audio-, Event-, Daten- und Feedback-Kanal
+  anmelden — eine Sitzung je Durchsage. Ändert das live bestätigte Protokoll → nur mit Hörtest am HomePod.
 
 - MRP (Fernsteuerkanal über AirPlay): Zustand vor der Durchsage lesen, danach Musik fortsetzen und
   Lautstärke zurück; Play/Pause, Titel, Cover. Prüfauftrag: Apple-Music-Playlist starten.

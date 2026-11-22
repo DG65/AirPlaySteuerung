@@ -20,7 +20,7 @@ final class AirPlayAblauf
     private const COVERZEIT = 3.0;
 
     /** @param callable $log fn(string): void */
-    public function __construct(private string $host, private $log)
+    public function __construct(private string $host, private $log, private int $port = AirPlaySitzung::PORT)
     {
     }
 
@@ -92,7 +92,8 @@ final class AirPlayAblauf
      * Durchsage abspielen. Mit $fortsetzen werden vorher Zustand und Lautstärke gemerkt und danach
      * wiederhergestellt (Play nur, wenn vorher etwas spielte; die Durchsage pausiert die Wiedergabe).
      * @param float|null $lautstaerke 0–100 %, null = Lautstärke des Geräts nicht ändern
-     * @return array{verspaetet:int, fortgesetzt:bool, lautstaerkeZurueck:bool}
+     * Scheitert das Wiederherstellen, gilt die Durchsage trotzdem als gespielt (Grund in wiederherstellenFehler).
+     * @return array{verspaetet:int, fortgesetzt:bool, lautstaerkeZurueck:bool, wiederherstellenFehler:string}
      */
     public function durchsage(string $pcm, ?float $lautstaerke, bool $fortsetzen): array
     {
@@ -108,7 +109,7 @@ final class AirPlayAblauf
             }
         }
 
-        $sitzung = new AirPlaySitzung($this->host, $this->log);
+        $sitzung = new AirPlaySitzung($this->host, $this->log, $this->port);
         try {
             $sitzung->koppeln();
             $sitzung->audioEinrichten();
@@ -119,10 +120,11 @@ final class AirPlayAblauf
 
         $fortgesetzt = false;
         $lautZurueck = false;
-        if ($vorher !== null) {
-            $wiederSpielen = $vorher['zustand'] === 'playing';
-            $alteLautstaerke = $lautstaerke !== null ? $vorher['lautstaerke'] : null;
-            if ($wiederSpielen || $alteLautstaerke !== null) {
+        $fehler = '';
+        $wiederSpielen = $vorher !== null && $vorher['zustand'] === 'playing';
+        $alteLautstaerke = $vorher !== null && $lautstaerke !== null ? $vorher['lautstaerke'] : null;
+        if ($wiederSpielen || $alteLautstaerke !== null) {
+            try {
                 $this->mitFernsteuerung(function (AirPlayFernsteuerung $f) use ($wiederSpielen, $alteLautstaerke, &$fortgesetzt, &$lautZurueck): void {
                     $f->warten(0.5);
                     if ($alteLautstaerke !== null) {
@@ -134,15 +136,18 @@ final class AirPlayAblauf
                         $fortgesetzt = true;
                     }
                 });
+            } catch (Throwable $e) {
+                $fehler = AirPlayText::fehler($e);
+                ($this->log)('Wiederherstellen nach der Durchsage fehlgeschlagen: ' . $e->getMessage());
             }
         }
-        return ['verspaetet' => $ergebnis['verspaetet'], 'fortgesetzt' => $fortgesetzt, 'lautstaerkeZurueck' => $lautZurueck];
+        return ['verspaetet' => $ergebnis['verspaetet'], 'fortgesetzt' => $fortgesetzt, 'lautstaerkeZurueck' => $lautZurueck, 'wiederherstellenFehler' => $fehler];
     }
 
     /** Nur koppeln und Geräteinfo lesen. */
     public function info(): array
     {
-        $sitzung = new AirPlaySitzung($this->host, $this->log);
+        $sitzung = new AirPlaySitzung($this->host, $this->log, $this->port);
         try {
             $sitzung->koppeln();
             return $sitzung->info();
@@ -153,7 +158,7 @@ final class AirPlayAblauf
 
     private function mitFernsteuerung(callable $arbeit): mixed
     {
-        $sitzung = new AirPlaySitzung($this->host, $this->log);
+        $sitzung = new AirPlaySitzung($this->host, $this->log, $this->port);
         try {
             $sitzung->koppeln();
             return $arbeit($sitzung->fernsteuerung());

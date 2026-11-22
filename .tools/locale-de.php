@@ -1,7 +1,7 @@
 <?php
 /**
  * Deutsche Fassungen zu den englischen Quelltexten. Erzeugt libs/locale.json und kopiert sie in
- * beide Modulordner (Symcon liest locale.json nur im Modulordner). Aufruf: php .tools/locale-de.php
+ * alle Modulordner (Symcon liest locale.json nur im Modulordner). Aufruf: php .tools/locale-de.php
  */
 declare(strict_types=1);
 
@@ -93,7 +93,6 @@ $de = [
     'Set the volume for announcements' => 'Lautstärke für Durchsagen setzen',
     'Volume for announcements' => 'Lautstärke für Durchsagen',
     'Without the checkbox, the announcement plays at the volume currently set on the device.' => 'Ohne Haken läuft die Durchsage mit der Lautstärke, die gerade am Gerät eingestellt ist.',
-    '🔔 Play chime' => '🔔 Gong abspielen',
     'Ready' => 'Bereit',
     'Please enter the address of the device' => 'Bitte die Adresse des Geräts eintragen',
     'PHP extension gmp or sodium missing' => 'PHP-Erweiterung gmp oder sodium fehlt',
@@ -112,7 +111,6 @@ $de = [
     'Announcement failed: %s' => 'Durchsage fehlgeschlagen: %s',
     '⚠️ PHP extension missing: %s — announcements are not possible on this system.' => '⚠️ PHP-Erweiterung fehlt: %s — auf diesem System sind keine Durchsagen möglich.',
     'ℹ️ No announcement played yet.' => 'ℹ️ Noch keine Durchsage abgespielt.',
-    'Audio format: WAV (PCM) with any sample rate, mono or stereo. The module converts it to 44.1 kHz stereo. MP3 is not supported yet. Maximum length: 120 seconds.' => 'Audioformat: WAV (PCM) mit beliebiger Abtastrate, Mono oder Stereo. Das Modul rechnet auf 44,1 kHz Stereo um. MP3 wird noch nicht unterstützt. Höchstlänge: 120 Sekunden.',
 
     '🔌  Connection & display' => '🔌  Verbindung & Anzeige',
     'Show and control playback (HomePod, Apple TV)' => 'Wiedergabe anzeigen und steuern (HomePod, Apple TV)',
@@ -149,11 +147,6 @@ $de = [
     'App' => 'App',
     'Cover' => 'Cover',
     'Plays announcements on a HomePod via AirPlay 2 and shows and controls what it is playing — directly from Symcon, without additional software.' => 'Spielt Durchsagen über AirPlay 2 auf einem HomePod ab und zeigt und steuert, was er gerade spielt — direkt aus Symcon, ohne Zusatzsoftware.',
-    'Use it from scripts: AIRP_AnnounceMedia(<instance>, <media object with a WAV file>); — the call returns when the announcement has finished. Music that was playing continues afterwards.' => 'Aufruf aus Skripten: AIRP_AnnounceMedia(<Instanz>, <Medienobjekt mit WAV-Datei>); — der Aufruf kehrt zurück, wenn die Durchsage fertig ist. Laufende Musik geht danach weiter.',
-    'Announcement functions: AIRP_AnnounceMedia(id, mediaID), AIRP_AnnounceMediaEx(id, mediaID, volume), AIRP_AnnounceWave(id, wavBytes), AIRP_AnnounceWaveEx(id, wavBytes, volume), AIRP_PlayChime(id). Volume 0–100, -1 = setting of the instance.' => 'Durchsage-Funktionen: AIRP_AnnounceMedia(id, mediaID), AIRP_AnnounceMediaEx(id, mediaID, lautstärke), AIRP_AnnounceWave(id, wavBytes), AIRP_AnnounceWaveEx(id, wavBytes, lautstärke), AIRP_PlayChime(id). Lautstärke 0–100, -1 = Einstellung der Instanz.',
-    'Remote control functions: AIRP_Play(id), AIRP_Pause(id), AIRP_Stop(id), AIRP_Next(id), AIRP_Previous(id), AIRP_SetVolume(id, volume), AIRP_Update(id), AIRP_TestConnection(id). All return true or false; the result is shown in the panel "Announcements".' => 'Steuer-Funktionen: AIRP_Play(id), AIRP_Pause(id), AIRP_Stop(id), AIRP_Next(id), AIRP_Previous(id), AIRP_SetVolume(id, lautstärke), AIRP_Update(id), AIRP_TestConnection(id). Alle liefern true oder false; das Ergebnis steht im Panel „Durchsagen".',
-    'Resume: before an announcement, the module remembers whether something was playing and the volume; afterwards it restores the volume and continues playback. This adds about 3–5 seconds to the call.' => 'Fortsetzen: Vor einer Durchsage merkt sich das Modul, ob etwas lief und welche Lautstärke eingestellt war; danach stellt es die Lautstärke zurück und setzt die Wiedergabe fort. Das verlängert den Aufruf um etwa 3–5 Sekunden.',
-    'Display: the HomePod only reports changes while a connection is open. The module therefore asks at the set interval (a query takes about 2 seconds); changes can appear with that delay.' => 'Anzeige: Der HomePod meldet Änderungen nur, solange eine Verbindung offen ist. Das Modul fragt deshalb im eingestellten Abstand ab (eine Abfrage dauert etwa 2 Sekunden); Änderungen können entsprechend verzögert erscheinen.',
     'The device must be reachable from Symcon on TCP port 7000 and on the ports it assigns per session; for the audio, the device sends time requests to UDP ports that Symcon opens for the duration of the announcement. A firewall on the Symcon host must allow that.' => 'Das Gerät muss von Symcon aus über TCP-Port 7000 und die je Sitzung vergebenen Ports erreichbar sein; für den Ton schickt das Gerät Zeitabfragen an UDP-Ports, die Symcon für die Dauer der Durchsage öffnet. Eine Firewall auf dem Symcon-Rechner muss das zulassen.',
 
     'neither an Apple Music link nor a list of song IDs' => 'weder ein Apple-Music-Link noch eine Liste von Song-IDs',
@@ -161,13 +154,10 @@ $de = [
     'the Apple Music page has an unknown format' => 'die Apple-Music-Seite hat ein unbekanntes Format',
     'no songs found on the Apple Music page' => 'keine Titel auf der Apple-Music-Seite gefunden',
     'the device rejected the playlist (error %s, status %s)' => 'das Gerät hat die Titelliste abgelehnt (Fehler %s, Status %s)',
-    'Start Apple Music: paste the share link of a playlist or album (Apple Music app: … → Share → Copy link). The HomePod plays a copy of the song list; later changes to the playlist are not included.' => 'Apple Music starten: Teilen-Link einer Playlist oder eines Albums einfügen (Apple-Music-App: … → Teilen → Link kopieren). Der HomePod spielt eine Kopie der Titelliste; spätere Änderungen an der Playlist sind nicht enthalten.',
-    'Apple Music link' => 'Apple-Music-Link',
     'Shuffle' => 'Zufällig',
     '🎵 Play' => '🎵 Abspielen',
     '✅ Apple Music started with %s songs: %s' => '✅ Apple Music mit %s Titeln gestartet: %s',
     'Playlist could not be started: %s' => 'Playlist konnte nicht gestartet werden: %s',
-    'Apple Music: AIRP_PlayPlaylist(id, link, shuffle) starts the songs of a playlist or album from its share link (music.apple.com), or a comma-separated list of song IDs. The module reads the song list from the public Apple Music page; the HomePod plays it from its own Apple Music account.' => 'Apple Music: AIRP_PlayPlaylist(id, link, zufällig) startet die Titel einer Playlist oder eines Albums über den Teilen-Link (music.apple.com) oder eine durch Komma getrennte Liste von Song-IDs. Das Modul liest die Titelliste von der öffentlichen Apple-Music-Seite; der HomePod spielt sie über sein eigenes Apple-Music-Konto.',
 
     '• 🎵 New: start Apple Music on the HomePod — paste the share link of a playlist or album, optionally shuffled (AIRP_PlayPlaylist).' => '• 🎵 Neu: Apple Music auf dem HomePod starten — Teilen-Link einer Playlist oder eines Albums einfügen, auf Wunsch zufällig (AIRP_PlayPlaylist).',
     '• The app name now shows "Apple Music" instead of the internal name "AirMusic".' => '• Als App steht jetzt „Apple Music" statt des internen Namens „AirMusic".',
@@ -271,7 +261,6 @@ $de = [
     'The Piper server reports no installed voice.' => 'Der Piper-Server meldet keine installierte Stimme.',
     'Installed voices (copy the name into the field "Voice"):' => 'Installierte Stimmen (Namen ins Feld „Stimme" übernehmen):',
     'This is a test of the speech output.' => 'Das ist ein Test der Sprachausgabe.',
-    'Speech: AIRP_Say(id, text) and AIRP_SayEx(id, text, volume) read a text aloud (at most 1000 characters). The speech comes from the Piper server set in the panel "Speech output"; the call returns when the announcement has finished.' => 'Sprache: AIRP_Say(id, text) und AIRP_SayEx(id, text, lautstärke) lesen einen Text vor (höchstens 1000 Zeichen). Die Stimme kommt vom Piper-Server aus dem Panel „Sprachausgabe"; der Aufruf kehrt zurück, wenn die Durchsage beendet ist.',
     '• 🗣️ New: speech output — AIRP_Say(id, text) reads text aloud on the HomePod. The voice comes from a Piper server in your own network (free, offline, no account), e.g. as a Docker container. Set it up in the panel "Speech output (Piper)".' => '• 🗣️ Neu: Sprachausgabe — AIRP_Say(id, text) liest Text auf dem HomePod vor. Die Stimme liefert ein Piper-Server im eigenen Netz (kostenlos, ohne Internet, ohne Konto), z. B. als Docker-Container. Einrichtung im Panel „Sprachausgabe (Piper)".',
     '%s o\'clock' => '%s Uhr',
     '%1$s:%2$s' => '%1$s Uhr %2$s',
@@ -296,7 +285,6 @@ $de = [
     'November' => 'November',
     'December' => 'Dezember',
     '⏰  Scheduled announcements' => '⏰  Geplante Ansagen',
-    'Spoken via Piper (panel "Speech output"). Placeholders in the text: {uhrzeit} or {time} ("14 o\'clock", "14:30"), {wochentag} or {weekday}, {datum} or {date}, {var:12345} = value of a variable with its unit.' => 'Gesprochen über Piper (Panel „Sprachausgabe"). Platzhalter im Text: {uhrzeit} („14 Uhr", „14 Uhr 30"), {wochentag}, {datum}, {var:12345} = Wert einer Variable mit Einheit.',
     'Announcements' => 'Ansagen',
     'Active' => 'Aktiv',
     'When' => 'Wann',
@@ -315,12 +303,9 @@ $de = [
     '"From/To" limits hourly and half-hourly announcements to these hours (e.g. 7 to 22 h; 22 to 6 h also works). Volume -1 = setting of the panel "Announcements".' => '„Von/Bis" begrenzt stündliche und halbstündliche Ansagen auf diese Stunden (z. B. 7 bis 22 h; 22 bis 6 h geht auch). Lautstärke -1 = Einstellung aus dem Panel „Durchsagen".',
     'Scheduled announcement skipped: more than 10 minutes late.' => 'Geplante Ansage übersprungen: mehr als 10 Minuten zu spät.',
     'It is {time}.' => 'Es ist {uhrzeit}.',
-    '⏰ Next scheduled announcement: %s' => '⏰ Nächste geplante Ansage: %s',
     'ℹ️ No scheduled announcement active.' => 'ℹ️ Keine geplante Ansage aktiv.',
-    'Scheduled announcements: list in the panel "Scheduled announcements" — every full or half hour within an hour window, or daily at a set time; every day, Mon–Fri or Sat–Sun. Placeholders such as {time} also work in AIRP_Say.' => 'Geplante Ansagen: Liste im Panel „Geplante Ansagen" — jede volle oder halbe Stunde in einem Stundenfenster oder täglich zu einer Uhrzeit; jeden Tag, Mo–Fr oder Sa–So. Platzhalter wie {uhrzeit} gehen auch in AIRP_Say.',
     '• ⏰ New: scheduled announcements — e.g. the time every full hour from 7 to 22 h, or a good-morning message on weekdays. Placeholders {time}, {weekday}, {date} and {var:ID} also work in AIRP_Say.' => '• ⏰ Neu: geplante Ansagen — z. B. stündlich die Uhrzeit von 7 bis 22 Uhr oder werktags ein Guten-Morgen-Gruß. Die Platzhalter {uhrzeit}, {wochentag}, {datum} und {var:ID} gehen auch in AIRP_Say.',
     '%s announcements are already waiting' => 'es warten schon %s Durchsagen',
-    'The announcement queue is busy, please try again.' => 'Die Warteschlange für Durchsagen ist belegt, bitte noch einmal versuchen.',
     'Announcement not queued: %s' => 'Durchsage nicht eingereiht: %s',
     'Queued announcement skipped: more than 10 minutes old.' => 'Eingereihte Durchsage übersprungen: älter als 10 Minuten.',
     'Without waiting: AIRP_SayAsync(id, text, volume, chime) queues the announcement and returns at once; the instance speaks queued announcements one after the other (at most 10 waiting, older than 10 minutes are skipped). chime = true plays the chime first.' => 'Ohne Warten: AIRP_SayAsync(id, text, lautstärke, gong) reiht die Durchsage ein und kehrt sofort zurück; die Instanz spricht eingereihte Durchsagen der Reihe nach (höchstens 10 wartend, ältere als 10 Minuten werden übersprungen). gong = true spielt vorher den Gong.',
@@ -379,12 +364,80 @@ $de = [
     '• 🌐 New: online voices — the new instance "AirPlay-Sprachausgabe" speaks with Microsoft Azure, ElevenLabs or Google Cloud as well as Piper, stores the key once for all HomePods and keeps recurring texts in a cache. Select it in each AirPlay device (panel "Speech output").' => '• 🌐 Neu: Online-Stimmen — die neue Instanz „AirPlay-Sprachausgabe" spricht neben Piper auch mit Microsoft Azure, ElevenLabs oder Google Cloud, speichert den Schlüssel einmal für alle HomePods und hält wiederkehrende Texte im Zwischenspeicher. In jedem AirPlay-Gerät auswählen (Panel „Sprachausgabe").',
     'The old URL stops working. Create a new key?' => 'Die alte URL funktioniert dann nicht mehr. Neuen Schlüssel erzeugen?',
     '%s rejects the key (HTTP %s)' => '%s lehnt den Schlüssel ab (HTTP %s)',
+    'unknown sound %s' => 'unbekannter Klang %s',
+    'WAV file' => 'WAV-Datei',
+    'Doorbell' => 'Türklingel',
+    'Notice' => 'Hinweiston',
+    'Alarm' => 'Alarm',
+    'Script' => 'Skript',
+    'Queue' => 'Warteschlange',
+    'Schedule' => 'Zeitplan',
+    'Alarm clock' => 'Wecker',
+    'Form' => 'Formular',
+    'Tile' => 'Kachel',
+    'Night limit' => 'Nachtgrenze',
+    'at most' => 'höchstens',
+    'In these hours (e.g. 22 to 7 h), no announcement plays louder — including WarnHub, Automat and the schedule.' => 'In diesen Stunden (z. B. 22 bis 7 Uhr) spielt keine Durchsage lauter — auch nicht von WarnHub, Automat oder dem Zeitplan.',
+    'Groups (comma-separated, e.g. Ground floor, Kitchen)' => 'Gruppen (kommagetrennt, z. B. Erdgeschoss, Küche)',
+    'Sound' => 'Klang',
+    '🔔 Play sound' => '🔔 Klang abspielen',
+    'Spoken via the speech output (panel "Speech output"). Placeholders in the text: {uhrzeit} or {time} ("14 o\'clock", "14:30"), {wochentag} or {weekday}, {datum} or {date}, {var:12345} = value of a variable with its unit.' => 'Gesprochen über die Sprachausgabe (Panel „Sprachausgabe"). Platzhalter im Text: {uhrzeit} („14 Uhr", „14 Uhr 30"), {wochentag}, {datum}, {var:12345} = Wert einer Variable mit Einheit.',
+    '⏰  Alarm clock' => '⏰  Wecker',
+    'Starts Apple Music quietly at the set time and raises the volume step by step; afterwards an optional greeting (with placeholders). Pausing the music ends the alarm. Playlist: share link or the name of a favorite.' => 'Startet Apple Music zur eingestellten Zeit leise und hebt die Lautstärke schrittweise an; danach auf Wunsch ein Gruß (mit Platzhaltern). Pausieren der Musik beendet den Wecker. Playlist: Teilen-Link oder Name eines Favoriten.',
+    'Alarms' => 'Wecker',
+    'Time' => 'Uhrzeit',
+    'Playlist' => 'Playlist',
+    'Start' => 'Start',
+    'End' => 'Ende',
+    'Minutes' => 'Minuten',
+    'Greeting' => 'Gruß',
+    '🎵  Apple Music' => '🎵  Apple Music',
+    'Share link of a playlist or album (Apple Music app: … → Share → Copy link). The HomePod plays a copy of the song list; later changes to the playlist are not included. Favorites appear on the tile and can be used by name in the alarm clock and in AIRP_PlayPlaylist.' => 'Teilen-Link einer Playlist oder eines Albums (Apple-Music-App: … → Teilen → Link kopieren). Der HomePod spielt eine Kopie der Titelliste; spätere Änderungen der Playlist sind nicht enthalten. Favoriten erscheinen auf der Kachel und lassen sich im Wecker und in AIRP_PlayPlaylist per Name verwenden.',
+    'Favorites' => 'Favoriten',
+    'Link' => 'Link',
+    'Apple Music link or favorite' => 'Apple-Music-Link oder Favorit',
+    '📜  Announcement log' => '📜  Durchsage-Protokoll',
+    'Last announcements' => 'Letzte Durchsagen',
+    'Source' => 'Quelle',
+    'Result' => 'Ergebnis',
+    '⏰ Next scheduled event: %s' => '⏰ Nächster geplanter Termin: %s',
+    'Good morning, it is {time}.' => 'Guten Morgen, es ist {uhrzeit}.',
+    'Use it from scripts: AIRP_Say(<instance>, "Text"); or AIRP_AnnounceMedia(<instance>, <media object with a WAV file>); — music that was playing continues afterwards.' => 'Aus Skripten: AIRP_Say(<Instanz>, "Text"); oder AIRP_AnnounceMedia(<Instanz>, <Medienobjekt mit WAV-Datei>); — laufende Musik geht danach weiter.',
+    'Speech: AIRP_Say(id, text) and AIRP_SayEx(id, text, volume) read a text aloud (at most 1000 characters) and return when the announcement has finished. The voice comes from the AirPlay-Sprachausgabe instance selected in the panel "Speech output".' => 'Sprache: AIRP_Say(id, text) und AIRP_SayEx(id, text, lautstärke) lesen einen Text vor (höchstens 1000 Zeichen) und kehren zurück, wenn die Durchsage beendet ist. Die Stimme kommt von der im Panel „Sprachausgabe" gewählten Instanz AirPlay-Sprachausgabe.',
+    'Placeholders in texts: {uhrzeit}/{time}, {wochentag}/{weekday}, {datum}/{date}, {var:12345} = formatted value of a variable.' => 'Platzhalter in Texten: {uhrzeit}, {wochentag}, {datum}, {var:12345} = formatierter Wert einer Variable.',
+    'Several HomePods at once: AIRPS_SayGroup(<speech output instance>, "group", text, volume, chime) — enter the groups of this device in the panel "Announcements" (empty group = all devices).' => 'Mehrere HomePods auf einmal: AIRPS_SayGroup(<Sprachausgabe-Instanz>, "Gruppe", text, lautstärke, gong) — die Gruppen dieses Geräts im Panel „Durchsagen" eintragen (leere Gruppe = alle Geräte).',
+    'Audio and sounds: AIRP_AnnounceMedia(id, mediaID), AIRP_AnnounceMediaEx(id, mediaID, volume), AIRP_AnnounceWave(id, wavBytes), AIRP_AnnounceWaveEx(id, wavBytes, volume), AIRP_PlaySound(id, "gong" | "doorbell" | "notice" | "alarm"), AIRP_PlayChime(id). WAV (PCM) with any sample rate, at most 120 seconds.' => 'Audio und Klänge: AIRP_AnnounceMedia(id, medienID), AIRP_AnnounceMediaEx(id, medienID, lautstärke), AIRP_AnnounceWave(id, wavBytes), AIRP_AnnounceWaveEx(id, wavBytes, lautstärke), AIRP_PlaySound(id, "gong" | "doorbell" | "notice" | "alarm"), AIRP_PlayChime(id). WAV (PCM) mit beliebiger Abtastrate, höchstens 120 Sekunden.',
+    'Night limit: between the set hours, no announcement plays louder than the night volume — also for announcements from WarnHub, Automat or the schedule.' => 'Nachtgrenze: In den eingestellten Stunden spielt keine Durchsage lauter als die Nachtlautstärke — auch nicht von WarnHub, Automat oder dem Zeitplan.',
+    'Remote control: AIRP_Play(id), AIRP_Pause(id), AIRP_Stop(id), AIRP_Next(id), AIRP_Previous(id), AIRP_SetVolume(id, volume), AIRP_Update(id), AIRP_TestConnection(id). All return true or false; the result is shown in the panel "Announcements".' => 'Fernsteuerung: AIRP_Play(id), AIRP_Pause(id), AIRP_Stop(id), AIRP_Next(id), AIRP_Previous(id), AIRP_SetVolume(id, lautstärke), AIRP_Update(id), AIRP_TestConnection(id). Alle liefern true oder false; das Ergebnis steht im Panel „Durchsagen".',
+    'Apple Music: AIRP_PlayPlaylist(id, link, shuffle) starts the songs of a playlist or album from its share link (music.apple.com), a comma-separated list of song IDs or the name of a favorite. The HomePod plays them from its own Apple Music account.' => 'Apple Music: AIRP_PlayPlaylist(id, link, zufällig) startet die Titel einer Playlist oder eines Albums über den Teilen-Link (music.apple.com), eine kommagetrennte Liste von Song-IDs oder den Namen eines Favoriten. Der HomePod spielt sie über sein eigenes Apple-Music-Konto.',
+    'Alarm clock: starts a playlist quietly at the set time and raises the volume step by step over the set minutes; afterwards an optional greeting. Pausing the music ends the alarm.' => 'Wecker: startet zur eingestellten Zeit eine Playlist leise und hebt die Lautstärke über die eingestellten Minuten schrittweise an; danach auf Wunsch ein Gruß. Pausieren der Musik beendet den Wecker.',
+    'Resume: before an announcement, the module remembers whether something was playing and the volume; afterwards it restores the volume and continues playback. This adds about 3–5 seconds.' => 'Fortsetzen: Vor einer Durchsage merkt sich das Modul, ob etwas lief und wie laut; danach stellt es die Lautstärke zurück und setzt die Wiedergabe fort. Das dauert etwa 3–5 Sekunden länger.',
+    'Display: the HomePod only reports changes while a connection is open. The module therefore asks at the set interval (a query takes about 2 seconds).' => 'Anzeige: Der HomePod meldet Änderungen nur bei offener Verbindung. Das Modul fragt deshalb im eingestellten Abstand nach (eine Abfrage dauert etwa 2 Sekunden).',
+    'Alarm clock %1$s: music at %2$s %%, rising to %3$s %%' => 'Wecker %1$s: Musik mit %2$s %%, steigt auf %3$s %%',
+    'the instance is busy, please try again' => 'die Instanz ist belegt, bitte noch einmal versuchen',
+    '📣  Group announcement' => '📣  Gruppen-Durchsage',
+    'Speaks on all AirPlay devices that use this speech output and carry the group in their field "Groups" (panel "Announcements"). Empty group = all devices. Scripts: AIRPS_SayGroup(id, group, text, volume, chime).' => 'Spricht auf allen AirPlay-Geräten, die diese Sprachausgabe nutzen und die Gruppe in ihrem Feld „Gruppen" tragen (Panel „Durchsagen"). Leere Gruppe = alle Geräte. Skripte: AIRPS_SayGroup(id, gruppe, text, lautstärke, gong).',
+    'Group' => 'Gruppe',
+    '📣 Announce' => '📣 Ansagen',
+    'Group announcement "%s": no AirPlay device found that uses this speech output and belongs to the group.' => 'Gruppen-Durchsage „%s": kein AirPlay-Gerät gefunden, das diese Sprachausgabe nutzt und zur Gruppe gehört.',
+    '✅ Queued on %s devices.' => '✅ Auf %s Geräten eingereiht.',
+    '❌ No device in this group — check the field "Groups" in the AirPlay devices.' => '❌ Kein Gerät in dieser Gruppe — Feld „Gruppen" in den AirPlay-Geräten prüfen.',
+    'Group announcement: AIRPS_SayGroup(id, group, text, volume, chime) speaks on all AirPlay devices that use this instance and belong to the group (field "Groups" in the device; empty group = all). Returns the number of devices.' => 'Gruppen-Durchsage: AIRPS_SayGroup(id, gruppe, text, lautstärke, gong) spricht auf allen AirPlay-Geräten, die diese Instanz nutzen und zur Gruppe gehören (Feld „Gruppen" im Gerät; leere Gruppe = alle). Liefert die Zahl der Geräte.',
+    'Text to speak …' => 'Text zum Ansagen …',
+    'Speak' => 'Sprechen',
+    '• ⏰ New: alarm clock — starts a playlist quietly and raises the volume, then an optional greeting.' => '• ⏰ Neu: Wecker — startet eine Playlist leise und hebt die Lautstärke an, danach auf Wunsch ein Gruß.',
+    '• 🎛️ New: player tile with artwork, controls, favorites and quick announcements.' => '• 🎛️ Neu: Player-Kachel mit Cover, Steuerung, Favoriten und schneller Ansage.',
+    '• 🌙 New: night limit for announcements, sounds (doorbell, notice, alarm), group announcements and an announcement log.' => '• 🌙 Neu: Nachtgrenze für Durchsagen, Klänge (Türklingel, Hinweiston, Alarm), Gruppen-Durchsagen und ein Durchsage-Protokoll.',
+    '⚠️ Volume or playback could not be restored: %s' => '⚠️ Lautstärke oder Wiedergabe konnten nicht wiederhergestellt werden: %s',
+    'remote control channel not connected' => 'Fernsteuerkanal nicht verbunden',
+    'Port' => 'Port',
 ];
 
 $json = json_encode(['translations' => ['de' => $de]], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n";
 $basis = dirname(__DIR__);
 file_put_contents($basis . '/libs/locale.json', $json);
-foreach (['AirPlayGeraet', 'AirPlayKonfigurator', 'AirPlayKlima', 'AirPlaySprache'] as $modul) {
-    file_put_contents($basis . '/' . $modul . '/locale.json', $json);
+$module = array_map('dirname', glob($basis . '/*/module.json'));
+foreach ($module as $ordner) {
+    file_put_contents($ordner . '/locale.json', $json);
 }
-printf("locale.json mit %d Texten für 3 Module geschrieben\n", count($de));
+printf("locale.json mit %d Texten für %d Module geschrieben\n", count($de), count($module));

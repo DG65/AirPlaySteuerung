@@ -27,7 +27,7 @@ final class AirPlayKopplung
     private const FLAG_TRANSIENT = 0x10;
 
     private const KOPF = [
-        'User-Agent' => 'AirPlay/320.20',
+        'User-Agent' => AirPlayAbsender::USER_AGENT_KOPPLUNG,
         'Connection' => 'keep-alive',
         'X-Apple-HKP' => 4,
         'Content-Type' => 'application/octet-stream',

@@ -7,15 +7,13 @@ require_once __DIR__ . '/AirPlayText.php';
 // ===========================================================================
 // Geplante Ansagen und Platzhalter, rein in PHP ohne Symcon.
 //
-// Ein Eintrag (Zeile der Formularliste „Geplante Ansagen"):
-//   Active  bool    eingeschaltet
-//   When    string  hourly (volle Stunde) | halfhourly (volle und halbe Stunde) | daily (Uhrzeit)
-//   Time    string  „HH:MM", nur bei daily
-//   Days    string  all | weekdays (Mo–Fr) | weekend (Sa–So)
-//   From/To int     Stundenfenster 0–23 für hourly/halfhourly (über Mitternacht erlaubt, z. B. 22 → 6)
-//   Text    string  Ansagetext mit Platzhaltern
-//   Volume  int     0–100, -1 = Einstellung der Instanz
-//   Chime   bool    Gong vor der Ansage
+// Zwei Listen des AirPlay-Geräts teilen sich einen Timer:
+//  „Geplante Ansagen" (Art ansage)  Active, When (hourly | halfhourly | daily), Time „HH:MM" (daily),
+//                                   Days (all | weekdays | weekend), From/To Stundenfenster 0–23 (auch über
+//                                   Mitternacht, z. B. 22 → 6), Text mit Platzhaltern, Volume (-1 = Instanz),
+//                                   Chime (Klang davor, true = Gong oder Name aus AirPlayAudio::KLAENGE)
+//  „Wecker" (Art wecker)            Active, Time, Days, Link (Apple Music), Shuffle, StartVolume, EndVolume,
+//                                   Minutes (Dauer des Anstiegs), Text (Gruß nach dem Anstieg, optional)
 // Zeiten sind Unix-Sekunden in der Zeitzone des Systems; geplant wird minutengenau.
 // ===========================================================================
 
@@ -28,10 +26,24 @@ final class AirPlayZeitplan
     public const WANN = ['hourly', 'halfhourly', 'daily'];
     public const TAGE = ['all', 'weekdays', 'weekend'];
 
-    /** Passt der Eintrag zur Minute $zeit? */
+    /**
+     * Gültige Einträge beider Listen mit ihrer Art: Ansagen brauchen einen Text, Wecker einen Link;
+     * Wecker sind immer „täglich zur Uhrzeit".
+     * @return list<array>
+     */
+    public static function eintraege(array $ansagen, array $wecker): array
+    {
+        $gueltig = fn ($e, string $feld) => is_array($e) && !empty($e['Active']) && trim((string)($e[$feld] ?? '')) !== '';
+        return array_merge(
+            array_map(fn ($e) => ['Art' => 'ansage'] + $e, array_values(array_filter($ansagen, fn ($e) => $gueltig($e, 'Text')))),
+            array_map(fn ($e) => ['Art' => 'wecker', 'When' => 'daily'] + $e, array_values(array_filter($wecker, fn ($e) => $gueltig($e, 'Link'))))
+        );
+    }
+
+    /** Passt der (gültige) Eintrag zur Minute $zeit? */
     public static function passt(array $e, int $zeit): bool
     {
-        if (empty($e['Active']) || trim((string)($e['Text'] ?? '')) === '') {
+        if (empty($e['Active'])) {
             return false;
         }
         $wochentag = (int)date('N', $zeit);
@@ -56,7 +68,6 @@ final class AirPlayZeitplan
     /** Nächste Minute ab $ab (einschließlich der laufenden, falls sie genau auf :00 Sekunden steht), zu der ein Eintrag passt. */
     public static function naechste(array $eintraege, int $ab): ?int
     {
-        $eintraege = array_values(array_filter($eintraege, fn ($e) => is_array($e) && !empty($e['Active'])));
         if ($eintraege === []) {
             return null;
         }
@@ -91,8 +102,14 @@ final class AirPlayZeitplan
 
     private static function imFenster(array $e, int $stunde): bool
     {
-        $von = max(0, min(23, (int)($e['From'] ?? 0)));
-        $bis = max(0, min(23, (int)($e['To'] ?? 23)));
+        return self::stundeImFenster($stunde, (int)($e['From'] ?? 0), (int)($e['To'] ?? 23));
+    }
+
+    /** Liegt die Stunde im Fenster von–bis (beide einschließlich, über Mitternacht erlaubt)? */
+    public static function stundeImFenster(int $stunde, int $von, int $bis): bool
+    {
+        $von = max(0, min(23, $von));
+        $bis = max(0, min(23, $bis));
         return $von <= $bis ? ($stunde >= $von && $stunde <= $bis) : ($stunde >= $von || $stunde <= $bis);
     }
 }

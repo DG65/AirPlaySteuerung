@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/AirPlayVerbindung.php';
+require_once __DIR__ . '/AirPlayAbsender.php';
 
 // ===========================================================================
 // Anfragen auf der Steuerverbindung zu einem AirPlay-Gerät (TCP 7000):
@@ -17,7 +18,6 @@ require_once __DIR__ . '/AirPlayVerbindung.php';
 final class AirPlayRtsp
 {
     private const ZEITLIMIT = 5.0;
-    private const USER_AGENT = 'AirPlay/550.10';
 
     private int $cseq = 0;
     private string $dacpId;
@@ -84,10 +84,13 @@ final class AirPlayRtsp
     /** RTSP-Anfrage senden, ohne auf die Antwort zu warten (z. B. /feedback während des Stroms). */
     public function sendenOhneAntwort(string $methode, string $uri): void
     {
-        $this->verbindung->schreiben(self::nachricht($methode, $uri, 'RTSP/1.0', ['User-Agent' => self::USER_AGENT] + $this->rtspKopf(), ''));
+        $this->verbindung->schreiben(self::nachricht($methode, $uri, 'RTSP/1.0', ['User-Agent' => AirPlayAbsender::USER_AGENT] + $this->rtspKopf(), ''));
     }
 
-    /** Liegen gebliebene Antworten (z. B. auf sendenOhneAntwort) verwerfen. */
+    /**
+     * Liegen gebliebene Antworten (z. B. auf sendenOhneAntwort) verwerfen — hält den Puffer während langer
+     * Ströme klein; die Zuordnung der eigenen Antwort macht anfrage() über die CSeq.
+     */
     public function antwortenVerwerfen(): void
     {
         while ($this->verbindung->nachricht() !== null) {
@@ -107,7 +110,7 @@ final class AirPlayRtsp
     private static function nachricht(string $methode, string $uri, string $protokoll, array $kopf, string $koerper): string
     {
         if (!isset($kopf['User-Agent'])) {
-            $kopf = ['User-Agent' => self::USER_AGENT] + $kopf;
+            $kopf = ['User-Agent' => AirPlayAbsender::USER_AGENT] + $kopf;
         }
         if ($koerper !== '') {
             $kopf['Content-Length'] = strlen($koerper);
@@ -119,17 +122,26 @@ final class AirPlayRtsp
         return $text . "\r\n" . $koerper;
     }
 
+    /**
+     * Anfrage senden und die zugehörige Antwort liefern. RTSP-Antworten werden über die CSeq zugeordnet:
+     * Antworten auf frühere Anfragen ohne Warten (/feedback) werden übersprungen. HTTP (Kopplung) hat keine CSeq.
+     */
     private function anfrage(string $methode, string $uri, string $protokoll, array $kopf, string $koerper): array
     {
         $this->verbindung->schreiben(self::nachricht($methode, $uri, $protokoll, $kopf, $koerper));
+        $cseq = isset($kopf['CSeq']) ? (string)$kopf['CSeq'] : null;
         $ende = microtime(true) + self::ZEITLIMIT;
-        while (($antwort = $this->verbindung->nachricht()) === null) {
+        while (true) {
+            while (($antwort = $this->verbindung->nachricht()) !== null) {
+                if ($cseq === null || ($antwort['kopf']['cseq'] ?? $cseq) === $cseq) {
+                    return $antwort;
+                }
+            }
             if (microtime(true) > $ende) {
                 throw new AirPlayFehler('no answer to %s %s', $methode, $uri);
             }
             $this->warte(0.05);
         }
-        return $antwort;
     }
 
     private function warte(float $sekunden): void
