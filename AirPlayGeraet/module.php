@@ -60,6 +60,9 @@ class AirPlayGeraet extends IPSModule
         $this->RegisterPropertyInteger('NightFrom', 22);
         $this->RegisterPropertyInteger('NightTo', 7);
         $this->RegisterPropertyString('Groups', '');
+        $this->RegisterPropertyInteger('PresenceVariable', 0);
+        $this->RegisterPropertyBoolean('PresenceSchedule', true);
+        $this->RegisterPropertyBoolean('PresenceQueue', false);
         // Sprache (PiperServer/PiperVoice: direkte Einstellung aus 0.5.0–0.7.0, Rückfall ohne Sprachausgabe-Instanz)
         $this->RegisterPropertyInteger('SpeechInstance', 0);
         $this->RegisterPropertyString('PiperServer', '');

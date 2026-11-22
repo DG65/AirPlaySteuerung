@@ -408,7 +408,19 @@
             "remote control channel not connected": "Fernsteuerkanal nicht verbunden",
             "Port": "Port",
             "The URL contains a secret key — treat it like a password. The module picks the wired network address of Symcon (before Wi-Fi, without Docker/VPN networks). If it is wrong, use the one under which iPhone and home hub reach Symcon (port 3777) — preferably a fixed address (DHCP reservation in the router).": "Die URL enthält einen geheimen Schlüssel — wie ein Passwort behandeln. Das Modul nimmt die Kabel-Adresse von Symcon (vor WLAN, ohne Docker-/VPN-Netze). Stimmt sie nicht, die nehmen, unter der iPhone und Steuerzentrale Symcon erreichen (Port 3777) — am besten eine feste Adresse (DHCP-Reservierung im Router).",
-            "⚠️ No values since %s. Most common cause: the address of Symcon has changed (e.g. Wi-Fi connection lost). The shortcut must use this URL: %s": "⚠️ Seit %s keine Werte. Häufigste Ursache: Die Adresse von Symcon hat sich geändert (z. B. WLAN-Verbindung weg). Der Kurzbefehl muss diese URL verwenden: %s"
+            "⚠️ No values since %s. Most common cause: the address of Symcon has changed (e.g. Wi-Fi connection lost). The shortcut must use this URL: %s": "⚠️ Seit %s keine Werte. Häufigste Ursache: Die Adresse von Symcon hat sich geändert (z. B. WLAN-Verbindung weg). Der Kurzbefehl muss diese URL verwenden: %s",
+            "skipped: nobody at home": "ausgelassen: niemand zu Hause",
+            "Presence (variable: true or > 0 = somebody at home)": "Anwesenheit (Variable: wahr oder > 0 = jemand zu Hause)",
+            "Scheduled announcements and alarm clock only when somebody is at home": "Geplante Ansagen und Wecker nur, wenn jemand zu Hause ist",
+            "Announcements from other modules (WarnHub, Automat) only when somebody is at home": "Durchsagen anderer Module (WarnHub, Automat) nur, wenn jemand zu Hause ist",
+            "Without a variable, announcements always play. Announcements from scripts, this form and the tile always play. Skipped announcements appear in the announcement log.": "Ohne Variable kommen Durchsagen immer. Durchsagen aus Skripten, diesem Formular und der Kachel kommen immer. Ausgelassene Durchsagen stehen im Durchsage-Protokoll.",
+            "Presence: with a presence variable, scheduled announcements and the alarm clock — and on request also announcements from other modules (AIRP_SayAsync, e.g. WarnHub) — are skipped while nobody is at home. Leave the second checkbox off if warnings should always play.": "Anwesenheit: Mit einer Anwesenheitsvariable werden geplante Ansagen und der Wecker — auf Wunsch auch Durchsagen anderer Module (AIRP_SayAsync, z. B. WarnHub) — ausgelassen, solange niemand zu Hause ist. Den zweiten Haken aus lassen, wenn Warnungen immer kommen sollen.",
+            "Push notification on outage to": "Push-Mitteilung bei Ausfall an",
+            "Optional: a tile visualization or WebFront. If no values arrive for three intervals, it gets a push notification once — and again when they are back. The message window of Symcon always gets an entry.": "Optional: eine Kachel-Visualisierung oder ein WebFront. Kommen drei Messabstände lang keine Werte, bekommt sie einmal eine Push-Mitteilung — und noch einmal, wenn sie wieder da sind. Das Meldungen-Fenster von Symcon bekommt immer einen Eintrag.",
+            "No HomePod values since %s. Check the Apple Home automation and the URL in the shortcut: %s": "Seit %s keine HomePod-Werte. Apple-Home-Automation und URL im Kurzbefehl prüfen: %s",
+            "HomePod values are arriving again.": "HomePod-Werte kommen wieder an.",
+            "AirPlay-Klima": "AirPlay-Klima",
+            "Push notification could not be sent (instance %s).": "Push-Mitteilung konnte nicht gesendet werden (Instanz %s)."
         }
     }
 }

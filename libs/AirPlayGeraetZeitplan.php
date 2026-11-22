@@ -48,6 +48,9 @@ trait AirPlayGeraetZeitplan
                 $this->LogMessage(AirPlayText::t('Scheduled announcement skipped: more than 10 minutes late.'), KL_WARNING);
                 break;
             }
+            if ($this->wegenAbwesenheitAuslassen($e['Art'] === 'wecker' ? 'alarm' : 'schedule', (string)($e['Art'] === 'wecker' ? $e['Link'] : $e['Text']))) {
+                continue;
+            }
             if ($e['Art'] === 'wecker') {
                 $this->weckerStarten($e);
             } else {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../libs/AirPlayFormular.php';
 require_once __DIR__ . '/../libs/AirPlayKlimaDaten.php';
 require_once __DIR__ . '/../libs/AirPlayNetz.php';
+require_once __DIR__ . '/../libs/AirPlayPush.php';
 
 // ===========================================================================
 // AirPlay-Klima — Temperatur und Luftfeuchte der HomePods (mini, 2. Gen.) als
@@ -45,9 +46,11 @@ class AirPlayKlima extends IPSModule
     {
         parent::Create();
         $this->RegisterPropertyInteger('Interval', 10);
+        $this->RegisterPropertyInteger('NotifyInstance', 0);
         $this->RegisterAttributeString('Key', '');
         $this->RegisterAttributeInteger('LastReceived', 0);
         $this->RegisterAttributeString('Rooms', '{}');
+        $this->RegisterAttributeBoolean('OutageReported', false);
         $this->RegisterTimer('Trigger', 0, 'AIRPK_Trigger($_IPS[\'TARGET\']);');
         $this->RegisterTimer('TriggerOff', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], \'TriggerOff\', 0);');
         $this->registerFormAttributes();
@@ -265,7 +268,29 @@ class AirPlayKlima extends IPSModule
             $this->SetStatus(self::STATUS_KEIN_WEBHOOK);
             return;
         }
-        $this->SetStatus($this->veraltet() ? self::STATUS_VERALTET : IS_ACTIVE);
+        $veraltet = $this->veraltet();
+        $this->SetStatus($veraltet ? self::STATUS_VERALTET : IS_ACTIVE);
+        $this->ausfallMelden($veraltet);
+    }
+
+    /**
+     * Beim Wechsel in den Ausfall einmal melden (Meldungen-Fenster und, falls gewählt, Push), beim Wiederkommen
+     * der Werte ebenso — nicht bei jeder Prüfung erneut.
+     */
+    private function ausfallMelden(bool $veraltet): void
+    {
+        if ($veraltet === $this->ReadAttributeBoolean('OutageReported')) {
+            return;
+        }
+        $this->WriteAttributeBoolean('OutageReported', $veraltet);
+        $text = $veraltet
+            ? AirPlayText::t('No HomePod values since %s. Check the Apple Home automation and the URL in the shortcut: %s', date('d.m.Y H:i', $this->ReadAttributeInteger('LastReceived')), $this->hookUrl())
+            : AirPlayText::t('HomePod values are arriving again.');
+        $this->LogMessage($text, $veraltet ? KL_WARNING : KL_MESSAGE);
+        $oberflaeche = $this->ReadPropertyInteger('NotifyInstance');
+        if ($oberflaeche > 0 && !AirPlayPush::senden($oberflaeche, AirPlayText::t('AirPlay-Klima'), $text, $this->InstanceID)) {
+            $this->LogMessage(AirPlayText::t('Push notification could not be sent (instance %s).', $oberflaeche), KL_WARNING);
+        }
     }
 
     /** Ein HomePod hat schon gemeldet, aber seit drei Messabständen kam nichts mehr. */
@@ -334,6 +359,8 @@ class AirPlayKlima extends IPSModule
                 ['type' => 'NumberSpinner', 'name' => 'Interval', 'caption' => 'Measure every', 'suffix' => 'min', 'minimum' => 0, 'maximum' => 1440],
                 ['type' => 'Label', 'caption' => '0 = only when you switch "Trigger measurement" yourself. Values below 2 minutes are raised to 2.'],
                 ['type' => 'Button', 'caption' => '📡 Trigger measurement now', 'onClick' => 'AIRPK_UITrigger($id);'],
+                ['type' => 'SelectInstance', 'name' => 'NotifyInstance', 'caption' => 'Push notification on outage to', 'validModules' => [AirPlayPush::GUID_KACHEL, AirPlayPush::GUID_WEBFRONT], 'width' => '420px'],
+                ['type' => 'Label', 'caption' => 'Optional: a tile visualization or WebFront. If no values arrive for three intervals, it gets a push notification once — and again when they are back. The message window of Symcon always gets an entry.'],
             ],
         ];
         $anleitung = [

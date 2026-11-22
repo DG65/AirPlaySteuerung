@@ -1,6 +1,16 @@
 # Changelog
 
-## 0.9.1 (unveröffentlicht)
+## 0.10.0 (unveröffentlicht)
+
+- Neu: **Anwesenheit** im AirPlay-Gerät — Anwesenheitsvariable (wahr oder > 0 = jemand zu Hause). Geplante Ansagen
+  und Wecker entfallen bei Abwesenheit (Haken, Standard an); Durchsagen anderer Module über `AIRP_SayAsync`
+  (WarnHub, Automat) nur auf Wunsch (Haken, Standard aus — Warnungen kommen sonst immer). Skript, Formular und
+  Kachel sprechen immer. Ausgelassene Durchsagen stehen mit ⏸️ im Protokoll.
+- Neu: **AirPlay-Klima meldet einen Ausfall** — beim Wechsel auf „Seit einiger Zeit keine Werte" einmal ein Eintrag im
+  Meldungen-Fenster und, wenn gewählt, eine Push-Mitteilung an eine Kachel-Visualisierung (`VISU_PostNotificationEx`)
+  oder ein WebFront (`WFC_PushNotification`); ebenso einmal, wenn die Werte wieder kommen.
+
+## 0.9.1 (22.11.2026)
 
 - Fix: AirPlay-Klima wählt für die Kurzbefehl-URL die Kabel-Adresse von Symcon vor WLAN und übergeht virtuelle Netze
   (Docker, libvirt, VPN). Vorher die erste Adresse der Liste — live fiel eine WLAN-Adresse weg, und der Kurzbefehl lief

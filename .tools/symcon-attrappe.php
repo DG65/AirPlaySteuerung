@@ -128,6 +128,7 @@ function GetValue($id) { return Attrappe::$objekte[$id]['wert']; }
 function GetValueFormatted($id) { return (string)Attrappe::$objekte[$id]['wert']; }
 function IPS_VariableExists($id) { return (Attrappe::$objekte[$id]['typ'] ?? '') === 'var'; }
 function IPS_InstanceExists($id) { return isset(Attrappe::$instanzen[$id]); }
+function IPS_GetInstance($id) { return ['ModuleInfo' => ['ModuleID' => Attrappe::$module[get_class(Attrappe::$instanzen[$id])] ?? '']]; }
 function IPS_MediaExists($id) { return (Attrappe::$objekte[$id]['typ'] ?? '') === 'media'; }
 function IPS_GetObjectIDByIdent($ident, $parent) { return Attrappe::kind((int)$parent, $ident); }
 function IPS_GetChildrenIDs($parent) { return array_keys(array_filter(Attrappe::$objekte, fn ($o) => $o['parent'] === $parent)); }

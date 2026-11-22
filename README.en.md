@@ -5,7 +5,7 @@ no Docker, no additional software on the Symcon host.
 
 [Deutsche Version](README.md)
 
-> **Status: beta 0.9.1.** Announcements, resuming afterwards, display and control have been tested on
+> **Status: beta 0.10.0.** Announcements, resuming afterwards, display and control have been tested on
 > HomePod (1st generation) and HomePod mini. Apple TV with tvOS follows the same reference, but has not
 > been tested on real hardware yet.
 
@@ -31,6 +31,8 @@ no Docker, no additional software on the Symcon host.
 - **Sounds:** chime, doorbell, notice and alarm — purely synthetic, no audio file; selectable as a lead-in.
 - **Night limit:** during set hours, no announcement plays louder than X % — including WarnHub, Automat and the
   schedule.
+- **Presence:** with a presence variable, scheduled announcements and the alarm clock are skipped while nobody is
+  at home — on request also announcements from other modules (WarnHub, Automat). Skipped ones appear in the log.
 - **Several HomePods:** groups per device ("Ground floor, Kitchen"); `AIRPS_SayGroup` speaks on all devices of a
   group.
 - **Player tile:** artwork, title, ⏮ ⏯ ⏭, volume, favorite playlists and a field for quick announcements.
@@ -38,7 +40,8 @@ no Docker, no additional software on the Symcon host.
   result in the form.
 - **AirPlay-Klima:** temperature and humidity of HomePod mini and HomePod (2nd generation) as real
   variables — through an Apple Home automation that Symcon triggers via its HomeKit bridge at a set interval
-  (guide in the form and below).
+  (guide in the form and below). If values stop arriving, the instance reports it once in the message window and,
+  on request, as a push notification to a tile visualization or WebFront.
 - **AirPlay configurator:** finds HomePods, Apple TVs and other AirPlay receivers on the network. The
   column "Announcement" shows which devices can play announcements. Devices that require pairing with a
   PIN (e.g. many TVs) are listed but cannot be created.

@@ -96,6 +96,7 @@ trait AirPlayGeraetOberflaeche
             'Several HomePods at once: AIRPS_SayGroup(<speech output instance>, "group", text, volume, chime) — enter the groups of this device in the panel "Announcements" (empty group = all devices).',
             'Audio and sounds: AIRP_AnnounceMedia(id, mediaID), AIRP_AnnounceMediaEx(id, mediaID, volume), AIRP_AnnounceWave(id, wavBytes), AIRP_AnnounceWaveEx(id, wavBytes, volume), AIRP_PlaySound(id, "gong" | "doorbell" | "notice" | "alarm"), AIRP_PlayChime(id). WAV (PCM) with any sample rate, at most 120 seconds.',
             'Night limit: between the set hours, no announcement plays louder than the night volume — also for announcements from WarnHub, Automat or the schedule.',
+            'Presence: with a presence variable, scheduled announcements and the alarm clock — and on request also announcements from other modules (AIRP_SayAsync, e.g. WarnHub) — are skipped while nobody is at home. Leave the second checkbox off if warnings should always play.',
             'Remote control: AIRP_Play(id), AIRP_Pause(id), AIRP_Stop(id), AIRP_Next(id), AIRP_Previous(id), AIRP_SetVolume(id, volume), AIRP_Update(id), AIRP_TestConnection(id). All return true or false; the result is shown in the panel "Announcements".',
             'Apple Music: AIRP_PlayPlaylist(id, link, shuffle) starts the songs of a playlist or album from its share link (music.apple.com), a comma-separated list of song IDs or the name of a favorite. The HomePod plays them from its own Apple Music account.',
             'Alarm clock: starts a playlist quietly at the set time and raises the volume step by step over the set minutes; afterwards an optional greeting. Pausing the music ends the alarm.',
@@ -164,6 +165,10 @@ trait AirPlayGeraetOberflaeche
                 ]],
                 ['type' => 'Label', 'caption' => 'In these hours (e.g. 22 to 7 h), no announcement plays louder — including WarnHub, Automat and the schedule.'],
                 ['type' => 'ValidationTextBox', 'name' => 'Groups', 'caption' => 'Groups (comma-separated, e.g. Ground floor, Kitchen)', 'width' => '420px'],
+                ['type' => 'SelectVariable', 'name' => 'PresenceVariable', 'caption' => 'Presence (variable: true or > 0 = somebody at home)', 'width' => '420px'],
+                ['type' => 'CheckBox', 'name' => 'PresenceSchedule', 'caption' => 'Scheduled announcements and alarm clock only when somebody is at home'],
+                ['type' => 'CheckBox', 'name' => 'PresenceQueue', 'caption' => 'Announcements from other modules (WarnHub, Automat) only when somebody is at home'],
+                ['type' => 'Label', 'caption' => 'Without a variable, announcements always play. Announcements from scripts, this form and the tile always play. Skipped announcements appear in the announcement log.'],
                 ['type' => 'RowLayout', 'items' => [
                     ['type' => 'Select', 'name' => 'TestSound', 'caption' => 'Sound', 'value' => 'gong', 'options' => self::klangOptionen(false)],
                     ['type' => 'Button', 'caption' => '🔔 Play sound', 'onClick' => 'AIRP_UISound($id, $TestSound);'],
@@ -277,7 +282,7 @@ trait AirPlayGeraetOberflaeche
             'zeit' => date('d.m. H:i:s', (int)$e['zeit']),
             'quelle' => $this->quelleName((string)$e['quelle']),
             'text' => (string)$e['text'],
-            'ergebnis' => ($e['ok'] ? '✅ ' : '❌ ') . (string)$e['info'],
+            'ergebnis' => (!empty($e['skip']) ? '⏸️ ' : ($e['ok'] ? '✅ ' : '❌ ')) . (string)$e['info'],
         ], json_decode($this->ReadAttributeString('History'), true) ?: []);
         return [
             'type' => 'ExpansionPanel', 'expanded' => false, 'caption' => '📜  Announcement log',

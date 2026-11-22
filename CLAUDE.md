@@ -31,6 +31,11 @@
   Kachel), `AirPlayGeraetWiedergabe` (MRP, Apple Music, Favoriten, Variablen), `AirPlayGeraetZeitplan` (Ansagen +
   Wecker über einen Timer, Rampe), `AirPlayGeraetOberflaeche` (Formular-Panels, Kachel `AirPlayGeraet/module.html`).
   Interne Timer → `IPS_RequestAction(…, 'RunQueue'|'RunSchedule'|'RunRamp')`, keine öffentlichen Run-Funktionen.
+  Anwesenheit (ab 0.10.0): `wegenAbwesenheitAuslassen(quelle)` — schedule/alarm über PresenceSchedule, queue über
+  PresenceQueue; script/form/tile nie. Geprüft in Warteschlange und Zeitplan, nicht in `sprechen()`.
+- Push (AirPlay-Klima ab 0.10.0): `libs/AirPlayPush.php` nach SUITE.md Stolperstein 22 — Kachel-Visualisierung über
+  `VISU_PostNotificationEx` (6 Parameter), WebFront über `WFC_PushNotification`, byte-sicher gekürzt. Ziel wählt der
+  Nutzer (SelectInstance), keine Auto-Discovery. Gemeldet wird nur der Wechsel (Attribut OutageReported).
 - Reine Regeln ohne Symcon: `AirPlayLautstaerke` (Nachtgrenze, Rampe), `AirPlayProtokoll`, `AirPlayWarteschlange`, `AirPlayGruppe`,
   `AirPlayZeitplan` (+ Platzhalter), `AirPlayHttp`, `AirPlayText::sprechtext` (eine Sprechtext-Regel für alle Dienste).
 - Prüfstände: `.tools/test-airplay.php` (Bibliotheken, Store-Regeln inkl. Traits, Texte) und `.tools/test-module.php`

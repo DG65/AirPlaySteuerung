@@ -165,6 +165,9 @@ trait AirPlayGeraetDurchsage
                     $this->LogMessage(AirPlayText::t('Queued announcement skipped: more than 10 minutes old.'), KL_WARNING);
                     continue;
                 }
+                if ($this->wegenAbwesenheitAuslassen('queue', (string)$eintrag['text'])) {
+                    continue;
+                }
                 $this->sprechen((string)$eintrag['text'], (int)$eintrag['volume'], $eintrag['chime'] ? 'gong' : '', 'queue', (int)$eintrag['time']);
             }
         } finally {
@@ -299,14 +302,44 @@ trait AirPlayGeraetDurchsage
         return $ok;
     }
 
+    // ------------------------------------------------------------------ Anwesenheit
+
+    /**
+     * Niemand zu Hause und die Regel gilt für diese Quelle? Dann auslassen und protokollieren.
+     * Regel: geplante Ansagen und Wecker (PresenceSchedule), Durchsagen anderer Module über die Warteschlange
+     * (PresenceQueue). Skript, Formular und Kachel spricht immer — dort hat jemand ausdrücklich ausgelöst.
+     */
+    private function wegenAbwesenheitAuslassen(string $quelle, string $text): bool
+    {
+        $regel = match ($quelle) {
+            'schedule', 'alarm' => 'PresenceSchedule',
+            'queue' => 'PresenceQueue',
+            default => null,
+        };
+        if ($regel === null || !$this->ReadPropertyBoolean($regel) || $this->jemandDa()) {
+            return false;
+        }
+        $this->protokollieren($quelle, $text, true, AirPlayText::t('skipped: nobody at home'), true);
+        $this->SendDebug('Anwesenheit', 'ausgelassen (' . $quelle . '): ' . $text, 0);
+        return true;
+    }
+
+    /** Wert der Anwesenheitsvariable; ohne gewählte (oder mit gelöschter) Variable gilt: jemand ist da. */
+    private function jemandDa(): bool
+    {
+        $id = $this->ReadPropertyInteger('PresenceVariable');
+        return $id <= 0 || !@IPS_VariableExists($id) || (bool)GetValue($id);
+    }
+
     // ------------------------------------------------------------------ Protokoll und Klänge
 
-    private function protokollieren(string $quelle, string $text, bool $ok, string $info): void
+    /** $ausgelassen: bewusst nicht gespielt (Anwesenheit) — eigenes Zeichen im Protokoll. */
+    private function protokollieren(string $quelle, string $text, bool $ok, string $info, bool $ausgelassen = false): void
     {
         try {
-            $this->exklusiv('H', function () use ($quelle, $text, $ok, $info): void {
+            $this->exklusiv('H', function () use ($quelle, $text, $ok, $info, $ausgelassen): void {
                 $liste = json_decode($this->ReadAttributeString('History'), true) ?: [];
-                $eintrag = ['zeit' => time(), 'quelle' => $quelle, 'text' => $text, 'ok' => $ok, 'info' => $info];
+                $eintrag = ['zeit' => time(), 'quelle' => $quelle, 'text' => $text, 'ok' => $ok, 'info' => $info, 'skip' => $ausgelassen];
                 $this->WriteAttributeString('History', (string)json_encode(AirPlayProtokoll::eintragen($liste, $eintrag)));
             });
         } catch (AirPlayFehler) {

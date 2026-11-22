@@ -15,6 +15,14 @@ require $basis . '/AirPlayKlima/module.php';
 Attrappe::$module = ['AirPlayGeraet' => '{2BB8B63A-9A5A-4704-8230-C18259F9F3E7}', 'AirPlaySprache' => '{1995F9C5-57BE-4CCB-8980-07D0D4E1867E}'];
 
 // Funktionen, die Symcon aus den öffentlichen Methoden erzeugt
+final class AirPlayVisuAttrappe extends IPSModule
+{
+    public static array $mitteilungen = [];
+}
+final class AirPlayWebHookAttrappe extends IPSModule
+{
+}
+function VISU_PostNotificationEx($id, $titel, $text, $icon, $ton, $ziel) { AirPlayVisuAttrappe::$mitteilungen[] = [$id, $titel, $text, $icon, $ton, $ziel]; return true; }
 function AIRP_SayAsync($id, $text, $vol, $gong) { return Attrappe::$instanzen[$id]->SayAsync($text, $vol, $gong); }
 function AIRPS_GetSpeech($id, $text) { return Attrappe::$instanzen[$id]->GetSpeech($text); }
 function AIRPS_GetLastError($id) { return Attrappe::$instanzen[$id]->GetLastError(); }
@@ -135,6 +143,29 @@ Attrappe::$objekte[Attrappe::kind(200, 'Zustand')]['wert'] = 2;   // pausiert
 $g->RequestAction('RunRamp', 0);
 pruefe('Anstieg endet, wenn die Musik angehalten wurde', $g->ReadAttributeString('Ramp') === '' && $g->timer['Ramp'] === 0);
 
+echo "Anwesenheit\n";
+pruefe('ohne Anwesenheitsvariable wird nichts ausgelassen', !privat($g, 'wegenAbwesenheitAuslassen', 'schedule', 'x'));
+$anwesend = Attrappe::neu('var', 0, '', false);
+$g->setzen('PresenceVariable', $anwesend);
+pruefe('niemand da: Ansage und Wecker ausgelassen, Skript/Formular/Kachel nicht, Warteschlange nur auf Wunsch',
+    privat($g, 'wegenAbwesenheitAuslassen', 'schedule', 'x') && privat($g, 'wegenAbwesenheitAuslassen', 'alarm', 'x')
+    && !privat($g, 'wegenAbwesenheitAuslassen', 'script', 'x') && !privat($g, 'wegenAbwesenheitAuslassen', 'form', 'x')
+    && !privat($g, 'wegenAbwesenheitAuslassen', 'tile', 'x') && !privat($g, 'wegenAbwesenheitAuslassen', 'queue', 'x'));
+$g->setzen('PresenceQueue', true);
+$g->WriteAttributeString('Queue', '[]');
+$g->SayAsync('Unwetterwarnung', -1, false);
+$g->RequestAction('RunQueue', 0);
+$protokoll = json_decode($g->ReadAttributeString('History'), true);
+pruefe('Warteschlange bei Abwesenheit: ausgelassen und als ausgelassen protokolliert',
+    $protokoll[0]['text'] === 'Unwetterwarnung' && $protokoll[0]['skip'] === true && $protokoll[0]['info'] === 'skipped: nobody at home');
+pruefe('Protokoll zeigt ausgelassene Durchsage mit Pausenzeichen', str_contains(json_encode(json_decode($g->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE), '⏸️ skipped: nobody at home'));
+Attrappe::$objekte[$anwesend]['wert'] = 1;
+pruefe('jemand da (Wert > 0): nichts ausgelassen', !privat($g, 'wegenAbwesenheitAuslassen', 'queue', 'x') && !privat($g, 'wegenAbwesenheitAuslassen', 'schedule', 'x'));
+unset(Attrappe::$objekte[$anwesend]);
+pruefe('gelöschte Anwesenheitsvariable: nichts ausgelassen', !privat($g, 'wegenAbwesenheitAuslassen', 'schedule', 'x'));
+$g->setzen('PresenceVariable', 0);
+$g->setzen('PresenceQueue', false);
+
 echo "AirPlay-Klima\n";
 Attrappe::$netz = [['Description' => 'wlan0', 'IP' => '192.168.2.8'], ['Description' => 'docker0', 'IP' => '172.17.0.1'], ['Description' => 'br0', 'IP' => '192.168.2.7']];
 $k = new AirPlayKlima(400);
@@ -153,6 +184,22 @@ Attrappe::neu('var', 400, 'TSchlafzimmer', 22.0);
 $k->WriteAttributeInteger('LastReceived', time() - 7200);
 $text = json_encode(json_decode($k->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 pruefe('Seit drei Abständen nichts: Formular nennt Ursache und aktuelle URL', str_contains($text, 'Most common cause') && str_contains($text, 'http://192.168.2.7:3777/hook/airplayklima400'));
+
+$visu = new AirPlayVisuAttrappe(500);
+Attrappe::$module['AirPlayVisuAttrappe'] = AirPlayPush::GUID_KACHEL;
+$webhook = new AirPlayWebHookAttrappe(510);   // nur vorhanden sein: sonst Status 201 statt Ausfall-Prüfung
+Attrappe::$module['AirPlayWebHookAttrappe'] = '{015A6EB8-D6E5-4B93-B496-0D3F77AE9FE1}';
+$k->setzen('NotifyInstance', 500);
+$k->RequestAction('TriggerOff', 0);
+pruefe('Ausfall: Status 202, Warnung im Meldungen-Fenster und Push an die Kachel-Visualisierung',
+    $k->status === 202 && str_contains((string)end($k->log), 'No HomePod values since') && count(AirPlayVisuAttrappe::$mitteilungen) === 1
+    && AirPlayVisuAttrappe::$mitteilungen[0][0] === 500 && strlen(AirPlayVisuAttrappe::$mitteilungen[0][2]) <= 256);
+$k->RequestAction('TriggerOff', 0);
+pruefe('Ausfall wird nur einmal gemeldet', count(AirPlayVisuAttrappe::$mitteilungen) === 1);
+$k->WriteAttributeInteger('LastReceived', time());
+$k->RequestAction('TriggerOff', 0);
+pruefe('Werte wieder da: Status 102 und Entwarnung', $k->status === IS_ACTIVE && count(AirPlayVisuAttrappe::$mitteilungen) === 2 && str_contains(AirPlayVisuAttrappe::$mitteilungen[1][2], 'again'));
+pruefe('Push-Text byte-sicher gekürzt (Umlaut nicht zerschnitten)', AirPlayPush::kuerzen(str_repeat('ä', 20), 32) === str_repeat('ä', 14) . '...' && mb_check_encoding(AirPlayPush::kuerzen(str_repeat('ä', 20), 32), 'UTF-8'));
 
 proc_terminate($attrappe);
 echo "\n$anzahl Prüfungen, $fehler Fehler\n";

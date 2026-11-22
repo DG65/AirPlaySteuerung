@@ -5,7 +5,7 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
 
 [English version](README.en.md)
 
-> **Status: Beta 0.9.1.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
+> **Status: Beta 0.10.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
 > (1. Generation) und HomePod mini geprüft. Apple TV mit tvOS ist nach derselben Vorlage gebaut, aber
 > noch nicht an echter Hardware getestet.
 
@@ -32,6 +32,8 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
   wählbar.
 - **Nachtgrenze:** In einstellbaren Stunden spielt keine Durchsage lauter als X % — auch nicht von WarnHub, Automat
   oder dem Zeitplan.
+- **Anwesenheit:** Mit einer Anwesenheitsvariable entfallen geplante Ansagen und Wecker, solange niemand zu Hause
+  ist — auf Wunsch auch Durchsagen anderer Module (WarnHub, Automat). Ausgelassene stehen im Protokoll.
 - **Mehrere HomePods:** Gruppen je Gerät („Erdgeschoss, Küche"); `AIRPS_SayGroup` spricht auf allen Geräten einer
   Gruppe.
 - **Player-Kachel:** Cover, Titel, ⏮ ⏯ ⏭, Lautstärke, Favoriten-Playlists und ein Feld für schnelle Ansagen.
@@ -39,7 +41,8 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
   und Ergebnis im Formular.
 - **AirPlay-Klima:** Temperatur und Luftfeuchte von HomePod mini und HomePod (2. Generation) als echte
   Variablen — über eine Apple-Home-Automation, die Symcon über die HomeKit-Brücke im eingestellten Abstand
-  anstößt (Anleitung im Formular, Abschnitt unten).
+  anstößt (Anleitung im Formular, Abschnitt unten). Bleiben die Werte aus, meldet die Instanz das einmal im
+  Meldungen-Fenster und auf Wunsch als Push-Mitteilung an eine Kachel-Visualisierung oder ein WebFront.
 - **AirPlay-Konfigurator:** Findet HomePods, Apple TVs und andere AirPlay-Empfänger im Netz und zeigt
   in der Spalte „Durchsage", welche Geräte Durchsagen abspielen können. Geräte, die eine PIN-Kopplung
   verlangen (z. B. viele Fernseher), werden angezeigt, aber nicht zum Anlegen angeboten.
