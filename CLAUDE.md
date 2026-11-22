@@ -98,6 +98,10 @@
   Attribut `Queue`, Semaphore `AIRP_Q_<id>` fürs Einreihen/Entnehmen, `AIRP_QRUN_<id>` gegen zwei gleichzeitige Läufe
   (zweiter Lauf stellt den Timer auf 1 s und kommt wieder). Keine Standardwerte in AIRP_-Funktionen (Symcon-Verhalten
   nicht geprüft).
+- **Abnehmer (stabil halten!):** WarnHub 1.23.0 (Zieltyp „Durchsage", ruft `AIRP_SayAsync($id, $text, -1, $gong)` je
+  HomePod, erkennt Instanzen nur über die GUID `{2BB8B63A-…}`, true = zugestellt, false → eigener Log-Hinweis) und Automat
+  0.2.11 (Meldeweg „Durchsage"). Aufrufform, Parameterreihenfolge und Bedeutung von true/false nicht ändern; neue
+  Wünsche nur als zusätzliche Funktion.
 
 ## Sprachausgabe-Instanz (0.8.0)
 
