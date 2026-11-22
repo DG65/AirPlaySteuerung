@@ -9,8 +9,11 @@
 <style>
 :root{--fg:#1d1d1f;--fg2:#6e6e73;--rand:rgba(0,0,0,.12);--fl:rgba(0,0,0,.05);--akzent:#fa2d48;--akzentbg:rgba(250,45,72,.12)}
 @media (prefers-color-scheme:dark){:root{--fg:#f2f2f7;--fg2:#a1a1a6;--rand:rgba(255,255,255,.16);--fl:rgba(255,255,255,.07);--akzentbg:rgba(250,45,72,.22)}}
+/* Abstände zum Kachelrand liefert Symcon ab 9.1 als --margin-*; der obere enthält den Platz für den
+   Kacheltitel und schrumpft, wenn der Titel ausgeblendet ist. Ältere Versionen: 14 px. */
 html,body{margin:0;height:100%;background:transparent;color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-.kachel{box-sizing:border-box;height:100%;padding:14px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+body{box-sizing:border-box;padding:var(--margin-top,14px) var(--margin-side,14px) var(--margin-bottom,14px)}
+.kachel{box-sizing:border-box;height:100%;display:flex;flex-direction:column;gap:12px;overflow:auto}
 .kopf{display:flex;gap:12px;align-items:center;min-width:0}
 .cover{width:72px;height:72px;flex:none;border-radius:10px;background:var(--fl) center/cover no-repeat;display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--fg2)}
 .texte{min-width:0;flex:1}

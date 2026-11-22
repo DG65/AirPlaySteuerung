@@ -1,6 +1,11 @@
 # Changelog
 
-## 0.10.0 (unveröffentlicht)
+## 0.10.1 (unveröffentlicht)
+
+- Kachel: übernimmt ab Symcon 9.1 die Abstände der Kachel-Visualisierung (`--margin-*`). Der Kacheltitel überdeckt
+  den Liedtitel nicht mehr, und bei ausgeblendetem Titel rückt der Inhalt nach oben. Ältere Versionen: 14 px wie bisher.
+
+## 0.10.0 (22.11.2026)
 
 - Neu: **Anwesenheit** im AirPlay-Gerät — Anwesenheitsvariable (wahr oder > 0 = jemand zu Hause). Geplante Ansagen
   und Wecker entfallen bei Abwesenheit (Haken, Standard an); Durchsagen anderer Module über `AIRP_SayAsync`
