@@ -5,9 +5,11 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
 
 [English version](README.en.md)
 
-> **Status: Beta 0.11.1.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
+> **Status: Beta 0.11.2.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
 > (1. Generation) und HomePod mini geprüft. Apple TV mit tvOS ist nach derselben Vorlage gebaut, aber
-> noch nicht an echter Hardware getestet.
+> noch nicht an echter Hardware getestet. Bisher nur im Prüfstand, noch nicht im Alltag erprobt: Wecker, geplante
+> Ansagen, Nachtgrenze, Gruppen, Anwesenheit und die Push-Mitteilung von AirPlay-Klima. Die Online-Stimmen (Azure,
+> ElevenLabs, Google) sind ohne echten Schlüssel nicht geprüft — Rückmeldungen dazu sind besonders willkommen.
 
 ## Ziele und Abgrenzung
 

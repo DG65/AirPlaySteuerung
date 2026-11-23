@@ -5,9 +5,11 @@ no Docker, no additional software on the Symcon host.
 
 [Deutsche Version](README.md)
 
-> **Status: beta 0.11.1.** Announcements, resuming afterwards, display and control have been tested on
+> **Status: beta 0.11.2.** Announcements, resuming afterwards, display and control have been tested on
 > HomePod (1st generation) and HomePod mini. Apple TV with tvOS follows the same reference, but has not
-> been tested on real hardware yet.
+> been tested on real hardware yet. So far only covered by the test bench, not yet proven in daily use: alarm clock,
+> scheduled announcements, night limit, groups, presence and the push notification of AirPlay-Klima. The online voices
+> (Azure, ElevenLabs, Google) have not been tested with real keys — feedback on these is especially welcome.
 
 ## Goals and scope
 

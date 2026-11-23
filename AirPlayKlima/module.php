@@ -216,7 +216,15 @@ class AirPlayKlima extends IPSModule
         return 'http://' . $ip . ':3777' . $this->hookPfad() . '?key=' . $this->ReadAttributeString('Key');
     }
 
-    /** WebHook beim WebHook-Control eintragen (Verbund-Muster wie RoboHub/NRGDashboard). */
+    /**
+     * WebHook beim WebHook-Control eintragen (Verbund-Muster wie RoboHub/NRGDashboard).
+     *
+     * Hinweis für das Store-Review (Punkt 7, Abweichung von Punkt 5/13): Symcon bietet keine SDK-Funktion, um einen
+     * WebHook anzumelden. Wie im üblichen WebHook-Muster der Symcon-Module wird deshalb genau ein Eintrag
+     * {Hook: /hook/airplayklima<InstanzID>, TargetID: <diese Instanz>} in die Liste „Hooks" des WebHook-Control
+     * geschrieben — nur, wenn er fehlt oder auf eine andere Instanz zeigt. Andere Einträge bleiben unangetastet;
+     * beim Löschen der Instanz entfernt hookAustragen() genau diesen Eintrag wieder.
+     */
     private function hookRegistrieren(): void
     {
         $ids = IPS_GetInstanceListByModuleID(self::WEBHOOK_GUID);

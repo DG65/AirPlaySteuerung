@@ -114,7 +114,8 @@ class AirPlayGeraet extends IPSModule
     /** Ändert sich ein Raumklima-Wert, sofort die Kachel nachziehen (nicht erst bei der nächsten Abfrage). */
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
     {
-        if ($Message === VM_UPDATE) {
+        // Während des Starts oder beim Modul-Update liefern die SDK-Aufrufe noch keine gültigen Werte (SUITE.md 9c)
+        if ($Message === VM_UPDATE && IPS_GetKernelRunlevel() === KR_READY && IPS_InstanceExists($this->InstanceID)) {
             $this->kachelAktualisieren();
         }
     }

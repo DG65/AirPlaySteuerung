@@ -4,7 +4,8 @@
   "type": 3,
   "vendor": "Apple",
   "aliases": [
-    "AirPlay-Gerät"
+    "AirPlay-Gerät",
+    "AirPlay Device"
   ],
   "url": "https://github.com/DG65/AirPlaySteuerung",
   "parentRequirements": [],

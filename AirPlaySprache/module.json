@@ -4,7 +4,8 @@
   "type": 3,
   "vendor": "Apple",
   "aliases": [
-    "AirPlay-Sprachausgabe"
+    "AirPlay-Sprachausgabe",
+    "AirPlay Speech Output"
   ],
   "url": "https://github.com/DG65/AirPlaySteuerung",
   "parentRequirements": [],

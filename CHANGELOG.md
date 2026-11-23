@@ -1,6 +1,12 @@
 # Changelog
 
-## 0.11.1 (unveröffentlicht)
+## 0.11.2 (unveröffentlicht)
+
+- Store-Vorbereitung: englische Suchnamen der Module (AirPlay Device, AirPlay Climate, AirPlay Speech Output,
+  AirPlay Configurator), Erklärung der WebHook-Anmeldung im Code, Raumklima-Meldungen erst nach vollständigem
+  Symcon-Start, README-Status nennt, was bisher nur im Prüfstand lief.
+
+## 0.11.1 (23.11.2026)
 
 - Korrektur Apple Music: Ein Album-Link mit ausgewähltem Lied (`…/album/…?i=1440771270`, so teilt die Apple-Music-App
   ein einzelnes Lied) startet jetzt genau dieses Lied, danach folgt das Album. Bisher lief das ganze Album, mit „Zufall“

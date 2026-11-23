@@ -4,7 +4,8 @@
   "type": 4,
   "vendor": "Apple",
   "aliases": [
-    "AirPlay-Konfigurator"
+    "AirPlay-Konfigurator",
+    "AirPlay Configurator"
   ],
   "url": "https://github.com/DG65/AirPlaySteuerung",
   "parentRequirements": [],
