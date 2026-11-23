@@ -134,26 +134,39 @@ module converts it to 44.1 kHz stereo itself. MP3/AAC are not supported yet.
 
 ## Speech output
 
-Create an **AirPlay-Sprachausgabe** instance, choose the service and select it in every AirPlay device (panel
-"Speech output"). Keys are stored separately with "🔑 Save key" and never shown again.
+Spoken announcements need a speech service that turns text into sound. This is done by a separate
+**AirPlay-Sprachausgabe** (speech output) instance; all HomePods can share the same one.
 
-| Service | Cost | Setup |
-|---|---|---|
-| **Piper** | free, offline | Docker container in your network (below) |
-| **Microsoft Azure** | tier F0: 500,000 characters per month free | Azure portal → resource "Speech" → Key 1 + region, e.g. `westeurope`; voice e.g. `en-US-AvaNeural` (default is German `de-DE-KatjaNeural`) |
-| **ElevenLabs** | about 10,000 characters per month free | elevenlabs.io → profile → API key; voice ID via "🔍 Show voices" |
-| **Google Cloud** | free tier per voice type, billing account required | project → enable "Cloud Text-to-Speech API" → API key (restrict it to this API); without a voice, a German standard voice is used |
+**Setup in four steps:**
 
-The providers set their free tiers themselves and change them now and then — check before setting up.
-The **cache** plays identical texts (same service, same voice) from Symcon instead of creating them again: the
-hourly time announcement only costs quota on the first day and also works without internet.
+1. Create an **AirPlay-Sprachausgabe** instance.
+2. Panel "🗣️ Speech service" → choose the **Service** → "Apply changes". The matching fields then appear.
+3. Depending on the service, enter the Piper server or the API key (guides below), optionally a **Voice**
+   (empty = default of the service), then "▶️ Create speech" — a success message means the service works.
+4. In every **AirPlay device**, panel "🗣️ Speech output", select this instance under **Speech output instance** and apply.
 
-### Piper
+| Service | Cost | Internet | Sound |
+|---|---|---|---|
+| **Piper** | free | only once to download the voice | good, slightly technical |
+| **Microsoft Azure** | tier F0: 500,000 characters per month free | yes | very natural |
+| **ElevenLabs** | about 10,000 characters per month free | yes | very natural, many voices |
+| **Google Cloud** | free tier per voice type, billing account required | yes | natural |
 
-The text for `AIRP_Say` is spoken by [Piper](https://github.com/OHF-Voice/piper1-gpl), a free text-to-speech
-engine with natural-sounding voices that runs locally — no account, no cloud. Piper runs as a separate service on
-the network (Wyoming protocol, TCP 10200), e.g. as a Docker container on a NAS or server; Symcon only sends the text
-and receives the audio. Nothing is installed on the Symcon host.
+The providers set their free tiers themselves and change them now and then — check before setting up. Their web
+menus also change from time to time; the steps below describe the state of November 2026.
+
+**API keys** go into the field "API key", then click "🔑 Save key". The key is stored separately from the settings,
+never shown again and not exported with the configuration. To change it, simply save a new one.
+
+"🔍 Show voices" lists the German voices for Azure and Google. For other languages, enter the voice name directly
+(e.g. `en-US-AvaNeural` for Azure); Google takes the language from the voice name.
+
+### Piper (local, free)
+
+[Piper](https://github.com/OHF-Voice/piper1-gpl) is a free text-to-speech engine with natural-sounding voices that
+runs on your own network — no account, no cloud. Piper runs as a separate service (Wyoming protocol, TCP 10200),
+e.g. as a Docker container on a NAS, server or Raspberry Pi; Symcon only sends the text and gets the sound back.
+Nothing is installed on the Symcon computer.
 
 **Create the container in Portainer:** Stacks → "Add stack", name `piper`, in the web editor:
 
@@ -172,18 +185,71 @@ volumes:
   piper-data:
 ```
 
-"Deploy the stack". On first start, the container downloads the voice once (about 100 MB, it needs internet
-briefly). Without Portainer, `docker compose up -d` with the same file is enough.
+"Deploy the stack". On first start the container downloads the voice once (about 100 MB, it briefly needs internet
+for that). Without Portainer, `docker compose up -d` with the same file is enough, or in one line:
 
-**In the module:** panel "Speech output (Piper)" → Piper server = IP address of the Docker host → "Apply changes" →
-"🗣️ Speak". "🔍 Show voices" lists the installed voices.
+```bash
+docker run -d --name piper --restart unless-stopped -p 10200:10200 -v piper-data:/data rhasspy/wyoming-piper --voice en_US-lessac-high
+```
 
-**Voices:** English e.g. `en_US-lessac-high`, `en_GB-alba-medium`; German e.g. `de_DE-thorsten-high`. Voices with
-`medium` or `low` are faster on weak hosts such as a Raspberry Pi. Listen to samples at
-[rhasspy.github.io/piper-samples](https://rhasspy.github.io/piper-samples/).
+The image is available for Intel/AMD (amd64) and ARM (arm64, e.g. Raspberry Pi 4/5 or many NAS devices).
+
+**In the speech output instance:** service "Piper (own network, free)" → apply → **Piper server** = IP address of the
+Docker host (port 10200 is the default, another one as `host:port`) → apply → "▶️ Create speech". "🔍 Show voices"
+lists the installed voices.
+
+**Voices:** English e.g. `en_US-lessac-high`, `en_GB-alan-medium`; German e.g. `de_DE-thorsten-high` (male, best
+quality), `de_DE-thorsten-medium` (faster, for weak computers such as a Raspberry Pi), `de_DE-kerstin-low` or
+`de_DE-ramona-low` (female). More voices need no entry in the container: it downloads any voice entered in the field
+"Voice" on first use. Samples: [rhasspy.github.io/piper-samples](https://rhasspy.github.io/piper-samples/).
 
 The container [rhasspy/wyoming-piper](https://github.com/rhasspy/wyoming-piper) is also used by Home Assistant; an
 existing Piper service from there can be entered as well.
+
+### Microsoft Azure
+
+1. Sign in at [portal.azure.com](https://portal.azure.com) (a free Microsoft account is enough; Azure asks for a credit
+   card to verify your identity at sign-up, tier F0 costs nothing).
+2. "Create a resource" → search for **Speech** → **Speech service** (Azure AI Speech) → "Create".
+3. Create a resource group, choose a **Region** (e.g. *West Europe*), any name, **Pricing tier Free F0** → "Review +
+   create" → "Create".
+4. Open the resource → "Keys and Endpoint": copy **Key 1** and read the **Location/Region** (e.g. `westeurope`).
+5. In the speech output instance: service "Microsoft Azure" → apply → enter the **Azure region** → apply → paste Key 1
+   → "🔑 Save key" → "▶️ Create speech".
+
+Empty voice = German `de-DE-KatjaNeural`; English e.g. `en-US-AvaNeural` or `en-GB-SoniaNeural`. If Azure reports "key
+rejected", key and region do not match.
+
+### ElevenLabs
+
+1. Create an account at [elevenlabs.io](https://elevenlabs.io) (the free plan is enough to try it).
+2. Open **API Keys** in your account → "Create API Key". If you restrict the permissions, the module needs
+   text-to-speech and read access to voices. Copy the key right away, it is shown only once.
+3. In the speech output instance: service "ElevenLabs" → apply → paste the key → "🔑 Save key".
+4. "🔍 Show voices" lists the voices of your account with their ID. Copy a **voice ID** into the field "Voice"
+   (ElevenLabs always needs one) → apply → "▶️ Create speech".
+
+Add further voices from the ElevenLabs *Voice Library* to "My Voices" there first; then they appear in the list. The
+**ElevenLabs model** is set to `eleven_flash_v2_5`: multilingual and uses only half the quota of
+`eleven_multilingual_v2` (a bit more natural, also possible).
+
+### Google Cloud
+
+1. Create a project in the [Google Cloud Console](https://console.cloud.google.com).
+2. Set up a **billing account** for the project (required, even if you stay within the free tier).
+3. "APIs & Services" → "Library" → **Cloud Text-to-Speech API** → "Enable".
+4. "APIs & Services" → "Credentials" → "Create credentials" → **API key**. Then edit the key and restrict it under
+   "API restrictions" to the *Cloud Text-to-Speech API*.
+5. In the speech output instance: service "Google Cloud" → apply → paste the key → "🔑 Save key" → "▶️ Create speech".
+
+Empty voice = Google's German default voice. The voice names show the type (Standard, WaveNet, Neural2, Chirp …);
+the free tiers apply per type.
+
+### Cache
+
+The cache (panel "💾 Cache") plays identical texts with the same service and voice from Symcon instead of creating
+them again: the hourly time announcement only costs quota on the first day and also works without internet. By
+default at most 100 recordings are kept; "🗑️ Clear cache" deletes all of them.
 
 ## Temperature and humidity (AirPlay-Klima)
 

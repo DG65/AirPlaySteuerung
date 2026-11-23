@@ -137,26 +137,37 @@ Eine Durchsage kehrt erst zurück, wenn sie fertig ist (Dauer + etwa 1,5 s, mit 
 
 ## Sprachausgabe
 
-Eine Instanz **AirPlay-Sprachausgabe** anlegen, Dienst wählen und in jedem AirPlay-Gerät im Panel „Sprachausgabe"
-auswählen. Schlüssel werden mit „🔑 Schlüssel speichern" getrennt abgelegt und nicht wieder angezeigt.
+Für gesprochene Durchsagen braucht es einen Sprachdienst, der aus Text Ton macht. Das übernimmt eine eigene
+Instanz **AirPlay-Sprachausgabe**; alle HomePods können dieselbe benutzen.
 
-| Dienst | Kosten | Einrichtung |
-|---|---|---|
-| **Piper** | kostenlos, ohne Internet | Docker-Container im eigenen Netz (unten) |
-| **Microsoft Azure** | Tarif F0: 500.000 Zeichen im Monat frei | Azure-Portal → Ressource „Speech" → Schlüssel 1 + Region, z. B. `germanywestcentral`; Stimme z. B. `de-DE-KatjaNeural` (Standard) oder `de-DE-ConradNeural` |
-| **ElevenLabs** | etwa 10.000 Zeichen im Monat frei | elevenlabs.io → Profil → API-Schlüssel; Stimmen-ID über „🔍 Stimmen anzeigen" |
-| **Google Cloud** | Freikontingent je Stimmtyp, Abrechnungskonto nötig | Projekt → „Cloud Text-to-Speech API" aktivieren → API-Schlüssel (auf diese API beschränken) |
+**Einrichten in vier Schritten:**
 
-Die Freikontingente nennen die Anbieter selbst und ändern sie gelegentlich — vor der Einrichtung dort nachsehen.
-Der **Zwischenspeicher** spielt gleiche Texte (gleicher Dienst, gleiche Stimme) aus Symcon ab, statt sie neu zu
-erzeugen: die stündliche Zeitansage kostet so nur am ersten Tag Kontingent und klingt auch ohne Internet.
+1. Instanz **AirPlay-Sprachausgabe** anlegen.
+2. Panel „🗣️ Sprachdienst" → **Dienst** wählen → „Änderungen übernehmen". Danach erscheinen die passenden Felder.
+3. Je nach Dienst den Piper-Server bzw. den API-Schlüssel eintragen (Anleitungen unten), optional eine **Stimme**
+   (leer = Standard des Dienstes), dann „▶️ Sprache erzeugen" — kommt eine Erfolgsmeldung, steht der Dienst.
+4. In jedem **AirPlay-Gerät** im Panel „🗣️ Sprachausgabe" unter **Sprachausgabe-Instanz** diese Instanz wählen und übernehmen.
 
-### Piper
+| Dienst | Kosten | Internet | Klang |
+|---|---|---|---|
+| **Piper** | kostenlos | nur einmal zum Laden der Stimme | gut, etwas technisch |
+| **Microsoft Azure** | Tarif F0: 500.000 Zeichen im Monat frei | ja | sehr natürlich |
+| **ElevenLabs** | etwa 10.000 Zeichen im Monat frei | ja | sehr natürlich, viele Stimmen |
+| **Google Cloud** | Freikontingent je Stimmtyp, Abrechnungskonto nötig | ja | natürlich |
 
-Den Text für `AIRP_Say` spricht [Piper](https://github.com/OHF-Voice/piper1-gpl), eine freie Sprachausgabe mit
-natürlich klingenden Stimmen, die lokal läuft — kein Konto, keine Cloud. Piper läuft als eigener Dienst im Netz
-(Wyoming-Protokoll, TCP 10200), z. B. als Docker-Container auf einem NAS oder Server; Symcon schickt nur den Text
-hin und bekommt den Ton zurück. Auf dem Symcon-Rechner wird nichts installiert.
+Die Freikontingente legen die Anbieter selbst fest und ändern sie gelegentlich — vor der Einrichtung dort nachsehen.
+Die Menüs der Anbieter-Webseiten ändern sich ebenfalls ab und zu; die Wege unten beschreiben den Stand vom November 2026.
+
+**API-Schlüssel** gibt man in das Feld „API-Schlüssel" ein und klickt „🔑 Schlüssel speichern". Der Schlüssel wird
+getrennt von den Einstellungen abgelegt, nicht wieder angezeigt und nicht mit der Konfiguration exportiert. Zum
+Wechseln einfach einen neuen speichern.
+
+### Piper (lokal, kostenlos)
+
+[Piper](https://github.com/OHF-Voice/piper1-gpl) ist eine freie Sprachausgabe mit natürlich klingenden Stimmen, die im
+eigenen Netz läuft — kein Konto, keine Cloud. Piper läuft als eigener Dienst (Wyoming-Protokoll, TCP 10200), z. B.
+als Docker-Container auf einem NAS, Server oder Raspberry Pi; Symcon schickt nur den Text hin und bekommt den Ton
+zurück. Auf dem Symcon-Rechner wird nichts installiert.
 
 **Container in Portainer anlegen:** Stacks → „Add stack", Name `piper`, in den Web-Editor:
 
@@ -176,18 +187,72 @@ volumes:
 ```
 
 „Deploy the stack". Beim ersten Start lädt der Container die Stimme einmalig herunter (gut 100 MB, dafür braucht er
-kurz Internet). Ohne Portainer genügt `docker compose up -d` mit derselben Datei.
+kurz Internet). Ohne Portainer genügt `docker compose up -d` mit derselben Datei, oder in einer Zeile:
 
-**Im Modul:** Panel „Sprachausgabe (Piper)" → Piper-Server = IP-Adresse des Docker-Rechners → „Änderungen
-übernehmen" → „🗣️ Sprechen". „🔍 Stimmen anzeigen" listet die installierten Stimmen.
+```bash
+docker run -d --name piper --restart unless-stopped -p 10200:10200 -v piper-data:/data rhasspy/wyoming-piper --voice de_DE-thorsten-high
+```
+
+Das Image gibt es für Intel/AMD (amd64) und ARM (arm64, z. B. Raspberry Pi 4/5 oder viele NAS).
+
+**In der Sprachausgabe-Instanz:** Dienst „Piper (eigenes Netz, kostenlos)" → übernehmen → **Piper-Server** = IP-Adresse
+des Docker-Rechners (Port 10200 ist Standard, ein anderer als `host:port`) → übernehmen → „▶️ Sprache erzeugen".
+„🔍 Stimmen anzeigen" listet die installierten Stimmen.
 
 **Stimmen:** Deutsch z. B. `de_DE-thorsten-high` (männlich, beste Qualität), `de_DE-thorsten-medium` (schneller, für
-schwache Rechner wie einen Raspberry Pi), `de_DE-kerstin-low` oder `de_DE-ramona-low` (weiblich). Weitere Stimmen:
-zusätzliche `--voice …` sind nicht nötig — der Container lädt jede Stimme, die das Modul anfordert, beim ersten
-Gebrauch nach. Hörproben: [rhasspy.github.io/piper-samples](https://rhasspy.github.io/piper-samples/).
+schwache Rechner wie einen Raspberry Pi), `de_DE-kerstin-low` oder `de_DE-ramona-low` (weiblich). Weitere Stimmen
+brauchen keinen Eintrag im Container: Er lädt jede Stimme, die im Feld „Stimme" steht, beim ersten Gebrauch nach.
+Hörproben: [rhasspy.github.io/piper-samples](https://rhasspy.github.io/piper-samples/).
 
 Den Container [rhasspy/wyoming-piper](https://github.com/rhasspy/wyoming-piper) nutzt auch Home Assistant; ein
 vorhandener Piper-Dienst von dort kann ebenso eingetragen werden.
+
+### Microsoft Azure
+
+1. Auf [portal.azure.com](https://portal.azure.com) anmelden (ein kostenloses Microsoft-Konto genügt; Azure fragt bei
+   der Anmeldung nach einer Kreditkarte zur Identitätsprüfung, der Tarif F0 kostet nichts).
+2. „Ressource erstellen" → nach **Speech** suchen → **Speech service** (Azure AI Speech) → „Erstellen".
+3. Ressourcengruppe anlegen, **Region** wählen (z. B. *Germany West Central*), Name frei, **Tarif Free F0** → „Überprüfen
+   und erstellen" → „Erstellen".
+4. Ressource öffnen → „Schlüssel und Endpunkt": **Schlüssel 1** kopieren und den **Speicherort/Region** ablesen
+   (z. B. `germanywestcentral`).
+5. In der Sprachausgabe-Instanz: Dienst „Microsoft Azure" → übernehmen → **Azure-Region** eintragen → übernehmen →
+   Schlüssel 1 einfügen → „🔑 Schlüssel speichern" → „▶️ Sprache erzeugen".
+
+Stimme leer = `de-DE-KatjaNeural`; männlich z. B. `de-DE-ConradNeural`. „🔍 Stimmen anzeigen" listet alle deutschen
+Stimmen. Meldet Azure „Schlüssel abgelehnt", passen Schlüssel und Region nicht zusammen.
+
+### ElevenLabs
+
+1. Auf [elevenlabs.io](https://elevenlabs.io) ein Konto anlegen (der kostenlose Tarif genügt zum Ausprobieren).
+2. Im Konto den Bereich **API Keys** öffnen → „Create API Key". Werden die Rechte eingeschränkt, braucht das Modul
+   Text-to-Speech und das Lesen der Stimmen. Den Schlüssel sofort kopieren, er wird nur einmal angezeigt.
+3. In der Sprachausgabe-Instanz: Dienst „ElevenLabs" → übernehmen → Schlüssel einfügen → „🔑 Schlüssel speichern".
+4. „🔍 Stimmen anzeigen" listet die Stimmen des Kontos mit ihrer ID. Eine **Stimmen-ID** in das Feld „Stimme" kopieren
+   (ElevenLabs braucht immer eine) → übernehmen → „▶️ Sprache erzeugen".
+
+Weitere Stimmen aus der *Voice Library* von ElevenLabs erst dort zu „My Voices" hinzufügen, dann erscheinen sie in der
+Liste. Das **ElevenLabs-Modell** steht auf `eleven_flash_v2_5`: spricht Deutsch und verbraucht nur halb so viel
+Kontingent wie `eleven_multilingual_v2` (etwas natürlicher, auch möglich).
+
+### Google Cloud
+
+1. In der [Google Cloud Console](https://console.cloud.google.com) ein Projekt anlegen.
+2. Für das Projekt ein **Abrechnungskonto** einrichten (Pflicht, auch wenn man im Freikontingent bleibt).
+3. „APIs und Dienste" → „Bibliothek" → **Cloud Text-to-Speech API** → „Aktivieren".
+4. „APIs und Dienste" → „Anmeldedaten" → „Anmeldedaten erstellen" → **API-Schlüssel**. Den Schlüssel anschließend
+   bearbeiten und unter „API-Einschränkungen" auf die *Cloud Text-to-Speech API* beschränken.
+5. In der Sprachausgabe-Instanz: Dienst „Google Cloud" → übernehmen → Schlüssel einfügen → „🔑 Schlüssel speichern" →
+   „▶️ Sprache erzeugen".
+
+Stimme leer = deutsche Standardstimme von Google. „🔍 Stimmen anzeigen" listet alle deutschen Stimmen; die Namen
+verraten den Typ (Standard, WaveNet, Neural2, Chirp …), die Freikontingente gelten je Typ.
+
+### Zwischenspeicher
+
+Der Zwischenspeicher (Panel „💾 Zwischenspeicher") spielt gleiche Texte mit gleichem Dienst und gleicher Stimme aus
+Symcon ab, statt sie neu zu erzeugen: Die stündliche Zeitansage kostet so nur am ersten Tag Kontingent und klingt
+auch ohne Internet. Standard sind höchstens 100 Aufnahmen; „🗑️ Zwischenspeicher leeren" löscht alle.
 
 ## Temperatur und Luftfeuchte (AirPlay-Klima)
 
