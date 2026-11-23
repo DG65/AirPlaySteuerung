@@ -47,6 +47,9 @@ trait AirPlayGeraetOberflaeche
             'favoriten' => array_map(fn (array $f): string => (string)($f['Name'] ?? ''), $this->liste('Favorites')),
             'sprache' => $this->spracheEingerichtet(),
             'meldung' => $this->ergebnisAnzeige(false),
+            'coverGroesse' => self::COVER_GROESSEN[$this->ReadPropertyString('TileCover')] ?? 72,
+            'naechste' => $this->naechsteFuerKachel(),
+            'klima' => $this->klimaFuerKachel(),
         ];
         if ($mitCover) {
             $daten['cover'] = $this->coverDatenUrl();
@@ -57,9 +60,45 @@ trait AirPlayGeraetOberflaeche
                 'unknown' => AirPlayText::t('Unknown'), 'offline' => AirPlayText::t('Device not reachable'),
                 'nothing' => AirPlayText::t('nothing playing'), 'volume' => AirPlayText::t('Volume'), 'favorites' => AirPlayText::t('Favorites'),
                 'say' => AirPlayText::t('Announcement'), 'sayHint' => AirPlayText::t('Text to speak …'), 'send' => AirPlayText::t('Speak'),
+                'next' => AirPlayText::t('Up next'), 'today' => AirPlayText::t('today'), 'tomorrow' => AirPlayText::t('tomorrow'),
+                'temperature' => AirPlayText::t('Temperature'), 'humidity' => AirPlayText::t('Humidity'),
             ];
         }
         return $daten;
+    }
+
+    /**
+     * Nächster Termin aus Ansagen und Wecker für die Kachel: Zeitpunkt, Art und Text (Platzhalter mit Blick auf
+     * diesen Zeitpunkt ersetzt). null = nichts geplant.
+     */
+    private function naechsteFuerKachel(): ?array
+    {
+        $zeit = $this->ReadAttributeInteger('ScheduleNext');
+        $faellig = $zeit > 0 ? AirPlayZeitplan::faellig($this->termine(), $zeit) : [];
+        if ($faellig === []) {
+            return null;
+        }
+        $e = $faellig[0];
+        if ($e['Art'] === 'wecker') {
+            $link = trim((string)$e['Link']);
+            $text = AirPlayText::t('Alarm clock') . (preg_match('~^https?://~i', $link) ? '' : ' · ' . $link);
+        } else {
+            $text = AirPlayPlatzhalter::ersetzen((string)$e['Text'], $zeit, fn (int $id): ?string => @IPS_VariableExists($id) ? (string)GetValueFormatted($id) : null);
+        }
+        return ['zeit' => $zeit, 'wecker' => $e['Art'] === 'wecker', 'text' => mb_strimwidth($text, 0, 120, '…', 'UTF-8')];
+    }
+
+    /** Raumklima für die Kachel: formatierte Werte der gewählten Variablen (fehlende Variablen entfallen). */
+    private function klimaFuerKachel(): array
+    {
+        $werte = [];
+        foreach (self::KLIMA_VARIABLEN as $eigenschaft => $schluessel) {
+            $id = $this->ReadPropertyInteger($eigenschaft);
+            if ($id > 0 && @IPS_VariableExists($id)) {
+                $werte[$schluessel] = (string)GetValueFormatted($id);
+            }
+        }
+        return $werte;
     }
 
     private function coverDatenUrl(): string
@@ -143,6 +182,17 @@ trait AirPlayGeraetOberflaeche
                 ['type' => 'NumberSpinner', 'name' => 'UpdateInterval', 'caption' => 'Update interval', 'suffix' => 's', 'minimum' => 0, 'maximum' => 3600],
                 ['type' => 'Label', 'caption' => '0 = no automatic update. Values below 5 seconds are raised to 5.'],
                 ['type' => 'Button', 'caption' => '🔄 Update now', 'onClick' => 'AIRP_UIUpdate($id);'],
+                ['type' => 'Select', 'name' => 'TileCover', 'caption' => 'Cover in the tile', 'options' => [
+                    ['caption' => 'Hidden', 'value' => 'off'],
+                    ['caption' => 'Small', 'value' => 'small'],
+                    ['caption' => 'Medium', 'value' => 'medium'],
+                    ['caption' => 'Large', 'value' => 'large'],
+                ]],
+                ['type' => 'RowLayout', 'items' => [
+                    ['type' => 'SelectVariable', 'name' => 'TemperatureVariable', 'caption' => 'Temperature in the tile', 'width' => '300px'],
+                    ['type' => 'SelectVariable', 'name' => 'HumidityVariable', 'caption' => 'Humidity in the tile', 'width' => '300px'],
+                ]],
+                ['type' => 'Label', 'caption' => 'Optional: the tile shows these values next to the title, e.g. the values of AirPlay-Klima for this HomePod.'],
             ])),
         ];
     }
@@ -271,6 +321,7 @@ trait AirPlayGeraetOberflaeche
                     ['type' => 'CheckBox', 'name' => 'PlaylistShuffle', 'caption' => 'Shuffle'],
                     ['type' => 'Button', 'caption' => '🎵 Play', 'onClick' => 'AIRP_UIPlaylist($id, $PlaylistLink, $PlaylistShuffle);'],
                 ]],
+                ['type' => 'Label', 'caption' => 'This field only plays once. To keep a playlist as a favorite, add a row to the list above and click "Apply changes".'],
             ],
         ];
     }

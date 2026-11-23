@@ -33,6 +33,10 @@ class AirPlayGeraet extends IPSModule
     private const STATUS_PHP_FEHLT = 202;
     private const STATUS_NICHT_ERREICHBAR = 203;
     private const GUID_SPRACHE = '{1995F9C5-57BE-4CCB-8980-07D0D4E1867E}';
+    /** Raumklima in der Kachel: Eigenschaft → Schlüssel in den Kacheldaten */
+    /** Cover in der Kachel: Einstellung → Kantenlänge in px (0 = ausgeblendet) */
+    private const COVER_GROESSEN = ['off' => 0, 'small' => 72, 'medium' => 112, 'large' => 160];
+    private const KLIMA_VARIABLEN = ['TemperatureVariable' => 'temperatur', 'HumidityVariable' => 'feuchte'];
 
     public function __construct($InstanceID)
     {
@@ -51,6 +55,9 @@ class AirPlayGeraet extends IPSModule
         $this->RegisterPropertyBoolean('RemoteControl', true);
         $this->RegisterPropertyInteger('UpdateInterval', 15);
         $this->RegisterPropertyString('Favorites', '[]');
+        $this->RegisterPropertyString('TileCover', 'small');
+        $this->RegisterPropertyInteger('TemperatureVariable', 0);
+        $this->RegisterPropertyInteger('HumidityVariable', 0);
         // Durchsagen
         $this->RegisterPropertyBoolean('SetVolume', true);
         $this->RegisterPropertyInteger('Volume', 30);
@@ -100,7 +107,32 @@ class AirPlayGeraet extends IPSModule
         $this->zeitplanStellen($bereit ? time() + 1 : null);
         $modell = $this->ReadPropertyString('Model');
         $this->SetSummary(trim($this->host() . ($modell !== '' ? ' · ' . $modell : '')));
+        $this->klimaBeobachten();
         $this->kachelAktualisieren(true);
+    }
+
+    /** Ändert sich ein Raumklima-Wert, sofort die Kachel nachziehen (nicht erst bei der nächsten Abfrage). */
+    public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
+    {
+        if ($Message === VM_UPDATE) {
+            $this->kachelAktualisieren();
+        }
+    }
+
+    /** Meldungen nur von den aktuell gewählten Raumklima-Variablen empfangen. */
+    private function klimaBeobachten(): void
+    {
+        foreach ($this->GetMessageList() as $sender => $meldungen) {
+            if (in_array(VM_UPDATE, $meldungen, true)) {
+                $this->UnregisterMessage($sender, VM_UPDATE);
+            }
+        }
+        foreach (array_keys(self::KLIMA_VARIABLEN) as $eigenschaft) {
+            $id = $this->ReadPropertyInteger($eigenschaft);
+            if ($id > 0 && @IPS_VariableExists($id)) {
+                $this->RegisterMessage($id, VM_UPDATE);
+            }
+        }
     }
 
     /** Variablen der Fernsteuerung, Kachel-Aktionen und interne Timer-Abläufe. */

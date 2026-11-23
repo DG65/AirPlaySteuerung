@@ -5,7 +5,7 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
 
 [English version](README.en.md)
 
-> **Status: Beta 0.10.1.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
+> **Status: Beta 0.11.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
 > (1. Generation) und HomePod mini geprüft. Apple TV mit tvOS ist nach derselben Vorlage gebaut, aber
 > noch nicht an echter Hardware getestet.
 
@@ -55,7 +55,9 @@ Thread-Border-Router für Matter braucht dieses Modul nicht.
   ist — auf Wunsch auch Durchsagen anderer Module (WarnHub, Automat). Ausgelassene stehen im Protokoll.
 - **Mehrere HomePods:** Gruppen je Gerät („Erdgeschoss, Küche"); `AIRPS_SayGroup` spricht auf allen Geräten einer
   Gruppe.
-- **Player-Kachel:** Cover, Titel, ⏮ ⏯ ⏭, Lautstärke, Favoriten-Playlists und ein Feld für schnelle Ansagen.
+- **Player-Kachel:** Cover (Größe einstellbar oder ausgeblendet), Titel, ⏮ ⏯ ⏭, Lautstärke, Favoriten-Playlists,
+  die nächste geplante Ansage bzw. der nächste Wecker, auf Wunsch Temperatur und Luftfeuchte (z. B. von AirPlay-Klima)
+  und ein Feld für schnelle Ansagen. Ab Symcon 9.1 hält sie Platz für den Kacheltitel frei.
 - **Durchsage-Protokoll:** die letzten 20 Durchsagen mit Quelle (Skript, Warteschlange, Zeitplan, Wecker, Kachel)
   und Ergebnis im Formular.
 - **AirPlay-Klima:** Temperatur und Luftfeuchte von HomePod mini und HomePod (2. Generation) als echte

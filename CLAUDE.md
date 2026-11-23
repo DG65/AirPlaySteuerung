@@ -31,6 +31,9 @@
   (alle Wege enden in `durchsageAbspielen`: Lautstärke inkl. Nachtgrenze → Sperre → Sitzung → Ergebnis → Protokoll →
   Kachel), `AirPlayGeraetWiedergabe` (MRP, Apple Music, Favoriten, Variablen), `AirPlayGeraetZeitplan` (Ansagen +
   Wecker über einen Timer, Rampe), `AirPlayGeraetOberflaeche` (Formular-Panels, Kachel `AirPlayGeraet/module.html`).
+  Kachel (ab 0.11.0): Raumklima über Properties Temperature-/HumidityVariable (VM_UPDATE → `kachelAktualisieren`),
+  „Als Nächstes" aus Attribut ScheduleNext (`zeitplanStellen` aktualisiert die Kachel), Cover-Größe TileCover;
+  Randabstände aus Symcons `--margin-*` (ab 9.1, Platz für den Kacheltitel).
   Interne Timer → `IPS_RequestAction(…, 'RunQueue'|'RunSchedule'|'RunRamp')`, keine öffentlichen Run-Funktionen.
   Anwesenheit (ab 0.10.0): `wegenAbwesenheitAuslassen(quelle)` — schedule/alarm über PresenceSchedule, queue über
   PresenceQueue; script/form/tile nie. Geprüft in Warteschlange und Zeitplan, nicht in `sprechen()`.

@@ -1,6 +1,15 @@
 # Changelog
 
-## 0.10.1 (unveröffentlicht)
+## 0.11.0 (unveröffentlicht)
+
+- Neu in der Kachel: **Als Nächstes** — die nächste geplante Ansage (Platzhalter für diesen Zeitpunkt ersetzt) oder der
+  nächste Wecker mit Uhrzeit („heute 14:00", „morgen 06:30").
+- Neu in der Kachel: **Raumklima** — Temperatur und Luftfeuchte aus zwei wählbaren Variablen (z. B. AirPlay-Klima)
+  rechts neben dem Titel; neue Werte erscheinen sofort (Meldung VM_UPDATE), nicht erst bei der nächsten Abfrage.
+- Neu: **Cover-Größe** einstellbar (ausgeblendet, klein, mittel, groß; Standard klein wie bisher).
+- Apple Music: Hinweis, dass das Abspielfeld nichts speichert — Favoriten gehören in die Liste darüber.
+
+## 0.10.1 (23.11.2026)
 
 - Kachel: übernimmt ab Symcon 9.1 die Abstände der Kachel-Visualisierung (`--margin-*`). Der Kacheltitel überdeckt
   den Liedtitel nicht mehr, und bei ausgeblendetem Titel rückt der Inhalt nach oben. Ältere Versionen: 14 px wie bisher.

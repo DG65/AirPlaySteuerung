@@ -444,6 +444,19 @@ $de = [
     'HomePod values are arriving again.' => 'HomePod-Werte kommen wieder an.',
     'AirPlay-Klima' => 'AirPlay-Klima',
     'Push notification could not be sent (instance %s).' => 'Push-Mitteilung konnte nicht gesendet werden (Instanz %s).',
+    // 0.11.0: Kachel mit Raumklima und nächstem Termin
+    'Up next' => 'Als Nächstes',
+    'Cover in the tile' => 'Cover in der Kachel',
+    'Hidden' => 'ausgeblendet',
+    'Small' => 'klein',
+    'Medium' => 'mittel',
+    'Large' => 'groß',
+    'This field only plays once. To keep a playlist as a favorite, add a row to the list above and click "Apply changes".' => 'Dieses Feld spielt nur einmal ab. Um eine Playlist als Favorit zu behalten, oben in der Liste eine Zeile hinzufügen und „Änderungen übernehmen“ klicken.',
+    'today' => 'heute',
+    'tomorrow' => 'morgen',
+    'Temperature in the tile' => 'Temperatur in der Kachel',
+    'Humidity in the tile' => 'Luftfeuchte in der Kachel',
+    'Optional: the tile shows these values next to the title, e.g. the values of AirPlay-Klima for this HomePod.' => 'Optional: Die Kachel zeigt diese Werte neben dem Titel, z. B. die Werte von AirPlay-Klima für diesen HomePod.',
 ];
 
 $json = json_encode(['translations' => ['de' => $de]], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n";

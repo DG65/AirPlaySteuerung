@@ -5,7 +5,7 @@ no Docker, no additional software on the Symcon host.
 
 [Deutsche Version](README.md)
 
-> **Status: beta 0.10.1.** Announcements, resuming afterwards, display and control have been tested on
+> **Status: beta 0.11.0.** Announcements, resuming afterwards, display and control have been tested on
 > HomePod (1st generation) and HomePod mini. Apple TV with tvOS follows the same reference, but has not
 > been tested on real hardware yet.
 
@@ -54,7 +54,9 @@ router for Matter does not need this module.
   at home — on request also announcements from other modules (WarnHub, Automat). Skipped ones appear in the log.
 - **Several HomePods:** groups per device ("Ground floor, Kitchen"); `AIRPS_SayGroup` speaks on all devices of a
   group.
-- **Player tile:** artwork, title, ⏮ ⏯ ⏭, volume, favorite playlists and a field for quick announcements.
+- **Player tile:** artwork (adjustable size or hidden), title, ⏮ ⏯ ⏭, volume, favorite playlists, the next scheduled
+  announcement or alarm, optionally temperature and humidity (e.g. from AirPlay-Klima) and a field for quick
+  announcements. From Symcon 9.1 it leaves room for the tile title.
 - **Announcement log:** the last 20 announcements with source (script, queue, schedule, alarm clock, tile) and
   result in the form.
 - **AirPlay-Klima:** temperature and humidity of HomePod mini and HomePod (2nd generation) as real

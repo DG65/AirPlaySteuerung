@@ -10,6 +10,7 @@ const IS_ACTIVE = 102;
 const KR_READY = 10103;
 const IPS_KERNELMESSAGE = 10100;
 const KL_MESSAGE = 10200;
+const VM_UPDATE = 10603;
 const KL_WARNING = 10201;
 const MEDIATYPE_IMAGE = 1;
 const MEDIATYPE_SOUND = 2;
@@ -73,6 +74,8 @@ class IPSModule
     private array $eigenschaften = [];
     private array $attribute = [];
     private array $puffer = [];
+    /** @var array<int, list<int>> Sender → Meldungen (RegisterMessage) */
+    public array $meldungen = [];
 
     public function __construct($InstanceID)
     {
@@ -118,7 +121,10 @@ class IPSModule
             $name === 'MaintainVariable' => Attrappe::kind($this->InstanceID, $args[0]) ?: Attrappe::neu('var', $this->InstanceID, $args[0]),
             $name === 'GetIDForIdent' => Attrappe::kind($this->InstanceID, $args[0]),
             $name === 'SetValue' => Attrappe::$objekte[Attrappe::kind($this->InstanceID, $args[0])]['wert'] = $args[1],
-            in_array($name, ['EnableAction', 'SendDebug', 'SetVisualizationType', 'RegisterMessage', 'UpdateFormField'], true) => null,
+            $name === 'RegisterMessage' => $this->meldungen[$args[0]][] = $args[1],
+            $name === 'UnregisterMessage' => $this->meldungen[$args[0]] = array_values(array_diff($this->meldungen[$args[0]] ?? [], [$args[1]])),
+            $name === 'GetMessageList' => array_filter($this->meldungen),
+            in_array($name, ['EnableAction', 'SendDebug', 'SetVisualizationType', 'UpdateFormField'], true) => null,
             default => throw new RuntimeException("Attrappe: $name"),
         };
     }

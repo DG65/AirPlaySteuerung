@@ -26,6 +26,7 @@ trait AirPlayGeraetZeitplan
         $naechste = $ab !== null ? AirPlayZeitplan::naechste($this->termine(), $ab) : null;
         $this->WriteAttributeInteger('ScheduleNext', $naechste ?? 0);
         $this->SetTimerInterval('Schedule', $naechste !== null ? max(1, $naechste - time()) * 1000 : 0);
+        $this->kachelAktualisieren();   // Kachel zeigt den nächsten Termin
     }
 
     /** @return list<array> gültige Einträge beider Listen mit ihrer Art (ansage | wecker) */

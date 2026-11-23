@@ -36,6 +36,10 @@ button:disabled{opacity:.4;cursor:default}
 .sagen button{padding:0 12px;font-size:14px}
 .meldung{font-size:12px;color:var(--fg2);min-height:1.2em}
 .aus{opacity:.55}
+.klima{flex:none;align-self:flex-start;text-align:right;font-size:13px;line-height:1.5;color:var(--fg2);white-space:nowrap}
+.naechste{display:flex;gap:8px;align-items:baseline;font-size:13px;min-width:0}
+.naechste .wann{flex:none;font-weight:600}
+.naechste .was{color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 </style>
 </head>
 <body>
@@ -51,16 +55,35 @@ function senden(ident, wert) {
   if (typeof requestAction === 'function') { requestAction(ident, wert); }
 }
 
+// Zeitpunkt als „heute 14:00“, „morgen 07:30“ oder „Mo. 07:30“ (Sprache des Browsers)
+function wann(ts) {
+  var d = new Date(ts * 1000), h = new Date();
+  var tag = function (x) { return new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime(); };
+  var abstand = Math.round((tag(d) - tag(h)) / 86400000);
+  var uhr = d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+  return (abstand === 0 ? T('today') : abstand === 1 ? T('tomorrow') : d.toLocaleDateString([], {weekday: 'short'})) + ' ' + uhr;
+}
+
+function klimaHtml(k) {
+  if (!k || (!k.temperatur && !k.feuchte)) { return ''; }
+  return '<div class="klima">'
+    + (k.temperatur ? '<div title="' + esc(T('temperature')) + '">🌡️ ' + esc(k.temperatur) + '</div>' : '')
+    + (k.feuchte ? '<div title="' + esc(T('humidity')) + '">💧 ' + esc(k.feuchte) + '</div>' : '')
+    + '</div>';
+}
+
 function zustandText(z) { return [T('unknown'), T('playing'), T('paused'), T('stopped')][z] || T('unknown'); }
 
 function zeichnen() {
   var d = daten, k = document.getElementById('kachel');
   var spielt = d.zustand === 1, an = d.erreichbar && d.steuerbar;
+  var groesse = d.coverGroesse === undefined ? 72 : d.coverGroesse;
   var html = '<div class="kopf' + (d.erreichbar ? '' : ' aus') + '">'
-    + '<div class="cover" id="cover">' + (d.cover ? '' : '♪') + '</div>'
+    + (groesse > 0 ? '<div class="cover" id="cover" style="width:' + groesse + 'px;height:' + groesse + 'px;font-size:' + Math.round(groesse * .42) + 'px">' + (d.cover ? '' : '♪') + '</div>' : '')
     + '<div class="texte"><div class="titel">' + esc(d.titel || T('nothing')) + '</div>'
     + '<div class="unter">' + esc([d.interpret, d.album].filter(Boolean).join(' · ') || d.app) + '</div>'
-    + '<span class="zustand' + (spielt ? ' spielt' : '') + '">' + esc(d.erreichbar ? zustandText(d.zustand) : T('offline')) + '</span></div></div>';
+    + '<span class="zustand' + (spielt ? ' spielt' : '') + '">' + esc(d.erreichbar ? zustandText(d.zustand) : T('offline')) + '</span></div>'
+    + klimaHtml(d.klima) + '</div>';
   if (d.steuerbar) {
     html += '<div class="tasten">'
       + '<button class="taste" ' + (an ? '' : 'disabled') + ' onclick="senden(\'Steuerung\',0)">⏮</button>'
@@ -74,6 +97,11 @@ function zeichnen() {
       + d.favoriten.map(function (n, i) { return '<button class="chip" ' + (d.erreichbar ? '' : 'disabled') + ' onclick="senden(\'Favorite\',' + i + ')">' + esc(n) + '</button>'; }).join('')
       + '</div></div>';
   }
+  if (d.naechste) {
+    html += '<div><div class="abschnitt">' + esc(T('next')) + '</div><div class="naechste">'
+      + '<span class="wann">' + (d.naechste.wecker ? '⏰ ' : '📢 ') + esc(wann(d.naechste.zeit)) + '</span>'
+      + '<span class="was">' + esc(d.naechste.text) + '</span></div></div>';
+  }
   if (d.sprache) {
     html += '<div><div class="abschnitt">' + esc(T('say')) + '</div><div class="sagen">'
       + '<input id="sagtext" maxlength="300" placeholder="' + esc(T('sayHint')) + '" onkeydown="if(event.key===\'Enter\'){sagen();}">'
@@ -85,7 +113,7 @@ function zeichnen() {
   k.innerHTML = html;
   var neu = document.getElementById('sagtext');
   if (neu) { neu.value = text; if (fokus) { neu.focus(); } }
-  if (d.cover) { document.getElementById('cover').style.backgroundImage = 'url("' + d.cover + '")'; }
+  if (d.cover && groesse > 0) { document.getElementById('cover').style.backgroundImage = 'url("' + d.cover + '")'; }
 }
 
 function sagen() {

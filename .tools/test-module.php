@@ -166,6 +166,45 @@ pruefe('gelöschte Anwesenheitsvariable: nichts ausgelassen', !privat($g, 'wegen
 $g->setzen('PresenceVariable', 0);
 $g->setzen('PresenceQueue', false);
 
+echo "Kachel: nächster Termin und Raumklima\n";
+$g->setzen('Alarms', '[]');
+$g->ApplyChanges();
+$daten = privat($g, 'kachelDaten', false, false);
+pruefe('nächster Termin: Ansage zur vollen Stunde, Platzhalter für diesen Zeitpunkt ersetzt',
+    $daten['naechste']['zeit'] === $g->ReadAttributeInteger('ScheduleNext') && $daten['naechste']['wecker'] === false
+    && !str_contains($daten['naechste']['text'], '{') && str_contains($daten['naechste']['text'], date('G', $daten['naechste']['zeit'])),
+    json_encode($daten['naechste'], JSON_UNESCAPED_UNICODE));
+$g->setzen('Schedule', '[]');
+$g->setzen('Alarms', json_encode([['Active' => true, 'Time' => '06:30', 'Days' => 'all', 'Link' => 'Morgen', 'Text' => '']]));
+$g->ApplyChanges();
+$daten = privat($g, 'kachelDaten', false, false);
+pruefe('nächster Termin: Wecker mit Favoritenname', $daten['naechste']['wecker'] === true && $daten['naechste']['text'] === 'Alarm clock · Morgen' && date('H:i', $daten['naechste']['zeit']) === '06:30');
+$g->setzen('Alarms', '[]');
+$g->ApplyChanges();
+pruefe('ohne Termin: kein Eintrag', privat($g, 'kachelDaten', false, false)['naechste'] === null);
+pruefe('ohne Klima-Variablen: kein Raumklima', privat($g, 'kachelDaten', false, false)['klima'] === []);
+$temp = Attrappe::neu('var', 0, '', '21,5 °C');
+$feuchte = Attrappe::neu('var', 0, '', '48 %');
+$g->setzen('TemperatureVariable', $temp);
+$g->setzen('HumidityVariable', $feuchte);
+$g->ApplyChanges();
+pruefe('Raumklima: formatierte Werte, Meldungen beider Variablen angemeldet',
+    privat($g, 'kachelDaten', false, false)['klima'] === ['temperatur' => '21,5 °C', 'feuchte' => '48 %']
+    && ($g->meldungen[$temp] ?? []) === [VM_UPDATE] && ($g->meldungen[$feuchte] ?? []) === [VM_UPDATE]);
+$vorher = count($g->kachel);
+Attrappe::$objekte[$temp]['wert'] = '22,0 °C';
+$g->MessageSink(time(), $temp, VM_UPDATE, []);
+pruefe('neuer Klimawert: Kachel sofort aktualisiert', count($g->kachel) === $vorher + 1 && json_decode(end($g->kachel), true)['klima']['temperatur'] === '22,0 °C');
+$g->setzen('HumidityVariable', 0);
+$g->ApplyChanges();
+pruefe('abgewählte Variable: Meldung abgemeldet', ($g->meldungen[$feuchte] ?? []) === [] && ($g->meldungen[$temp] ?? []) === [VM_UPDATE]);
+$g->setzen('TemperatureVariable', 0);
+$g->ApplyChanges();
+pruefe('Cover-Größe: Standard klein (72 px), groß 160 px, ausgeblendet 0', privat($g, 'kachelDaten', false, false)['coverGroesse'] === 72
+    && [$g->setzen('TileCover', 'large'), privat($g, 'kachelDaten', false, false)['coverGroesse']][1] === 160
+    && [$g->setzen('TileCover', 'off'), privat($g, 'kachelDaten', false, false)['coverGroesse']][1] === 0);
+$g->setzen('TileCover', 'small');
+
 echo "AirPlay-Klima\n";
 Attrappe::$netz = [['Description' => 'wlan0', 'IP' => '192.168.2.8'], ['Description' => 'docker0', 'IP' => '172.17.0.1'], ['Description' => 'br0', 'IP' => '192.168.2.7']];
 $k = new AirPlayKlima(400);
