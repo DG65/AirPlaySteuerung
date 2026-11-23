@@ -78,7 +78,8 @@ trait AirPlayFormular
     {
         $this->RegisterAttributeBoolean('PurposeIntroGone', false);
         $this->RegisterAttributeString('SeenNews', '');
-        $this->RegisterAttributeBoolean('FeedbackHintGone', false);
+        // ForumHintGone löst FeedbackHintGone (bis 0.11.3) ab: Der Hinweis zeigt den neuen Rückmeldeweg einmal in jeder Instanz.
+        $this->RegisterAttributeBoolean('ForumHintGone', false);
     }
 
     public function AckPurposeIntro(): void
@@ -96,7 +97,7 @@ trait AirPlayFormular
 
     public function AckFeedbackHint(): void
     {
-        $this->WriteAttributeBoolean('FeedbackHintGone', true);
+        $this->WriteAttributeBoolean('ForumHintGone', true);
         $this->UpdateFormField('FeedbackHintPanel', 'visible', false);
     }
 
@@ -166,12 +167,15 @@ trait AirPlayFormular
             $items[] = ['type' => 'Label', 'caption' => $zeile];
         }
         $items[] = ['type' => 'Button', 'caption' => 'Manual on GitHub', 'onClick' => "echo '" . self::$AIRPLAY_REPO_URL . "';", 'link' => true];
+        // Der Forum-Thread ist der einzige Rückmeldeweg — deshalb hier immer erreichbar, auch wenn der Hinweis weggeklickt ist.
+        $items[] = ['type' => 'Label', 'caption' => 'Questions, wishes and bug reports: in the forum thread.'];
+        $items[] = ['type' => 'Button', 'caption' => 'Go to the forum thread', 'onClick' => "echo '" . self::$AIRPLAY_FORUM_URL . "';", 'link' => true];
         return ['type' => 'ExpansionPanel', 'expanded' => false, 'caption' => '📖  Documentation & help', 'items' => $items];
     }
 
     private function formRueckmeldung(): ?array
     {
-        if ($this->ReadAttributeBoolean('FeedbackHintGone')) {
+        if ($this->ReadAttributeBoolean('ForumHintGone')) {
             return null;
         }
         // Rückmeldungen und Fehlerberichte nur über den Forum-Thread (Dietmar, 23.11.2026).

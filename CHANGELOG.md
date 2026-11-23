@@ -1,6 +1,12 @@
 # Changelog
 
-## 0.11.3 (unveröffentlicht)
+## 0.11.4 (unveröffentlicht)
+
+- Formular: Der Forum-Thread steht jetzt immer im Panel „Dokumentation & Hilfe" — auch in Instanzen, in denen der
+  Rückmelde-Hinweis weggeklickt wurde. Der Hinweis selbst erscheint mit dem neuen Rückmeldeweg einmal wieder in jeder
+  Instanz.
+
+## 0.11.3 (23.11.2026, Store-Beta 21814)
 
 - Formular, Panel „Rückmeldung": Rückmeldungen und Fehlerberichte gehen jetzt über den Forum-Thread (Knopf „Zum
   Forum-Thread", Thread 145020) statt über GitHub-Issues. README mit Abschnitt „Rückmeldungen".

@@ -66,6 +66,7 @@ $de = [
     '💬  Feedback' => '💬  Rückmeldung',
     '🧪 AirPlay-Steuerung is new. Does it work with your device? Is something missing? Found a bug? Please post in the AirPlay-Steuerung thread in the Symcon forum — with the device type and the column "Announcement" from the configurator.' => '🧪 AirPlay-Steuerung ist neu. Klappt es mit deinem Gerät? Fehlt etwas? Ein Fehler? Schreib bitte in den Thread zur AirPlay-Steuerung im Symcon-Forum — mit dem Gerätetyp und der Spalte „Durchsage" aus dem Konfigurator.',
     'Go to the forum thread' => 'Zum Forum-Thread',
+    'Questions, wishes and bug reports: in the forum thread.' => 'Fragen, Wünsche und Fehlerberichte: im Forum-Thread.',
     '🧡  About this module' => '🧡  Über dieses Modul',
     'Born out of real enthusiasm for my own setup — and quite a few evenings of typing. Still: hobby software or not, this is intellectual property and real work went into it.' => 'Entstanden aus echter Begeisterung für die eigene Anlage — und aus etlichen Abenden Tipparbeit. Trotzdem gilt: Hobby-Software hin oder her, das ist geistiges Eigentum, und es steckt echte Arbeit darin.',
     'License: PolyForm Noncommercial 1.0.0 — free for private and non-commercial use; commercial use requires a separate license from the rights holder.' => 'Lizenz: PolyForm Noncommercial 1.0.0 — frei für private und nicht-kommerzielle Nutzung; kommerzielle Nutzung braucht eine eigene Lizenz des Rechteinhabers.',

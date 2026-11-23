@@ -166,6 +166,12 @@ pruefe('gelöschte Anwesenheitsvariable: nichts ausgelassen', !privat($g, 'wegen
 $g->setzen('PresenceVariable', 0);
 $g->setzen('PresenceQueue', false);
 
+echo "Rückmeldeweg\n";
+$forum = fn () => substr_count($g->GetConfigurationForm(), '145020');
+pruefe('Forum-Thread im Hinweis und im Doku-Panel', $forum() === 2 && str_contains($g->GetConfigurationForm(), 'FeedbackHintPanel'));
+$g->AckFeedbackHint();
+pruefe('Hinweis weggeklickt: Forum-Thread bleibt im Doku-Panel erreichbar', $forum() === 1 && !str_contains($g->GetConfigurationForm(), 'FeedbackHintPanel'));
+
 echo "Kachel: nächster Termin und Raumklima\n";
 $g->setzen('Alarms', '[]');
 $g->ApplyChanges();
