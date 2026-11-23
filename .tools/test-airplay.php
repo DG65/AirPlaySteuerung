@@ -112,6 +112,13 @@ $q = AirPlayBplist::decode(AirPlayAppleMusic::warteschlange(['111', '222'], fals
 pruefe('Warteschlange: PQty 3, sofort, Titel, erster Titel, Zufall aus', $q['PQty'] === 3 && $q['PQip'] === true && $q['PQst'] === ['111', '222'] && $q['PQfg'] === '111' && $q['PQts'] === 1);
 $q = AirPlayBplist::decode(AirPlayAppleMusic::warteschlange(['111', '222'], true));
 pruefe('Warteschlange mit Zufall', $q['PQts'] === 3 && in_array($q['PQfg'], ['111', '222'], true));
+$link = 'https://music.apple.com/de/album/give-it-to-me/1440771262?i=1440771270';
+pruefe('Album-Link mit Liedauswahl: Lied erkannt, ohne Auswahl null', AirPlayAppleMusic::startTitel($link) === '1440771270'
+    && AirPlayAppleMusic::startTitel('https://music.apple.com/de/album/x/1440771262') === null);
+pruefe('Titelliste beginnt beim ausgewählten Lied, Titel davor ans Ende', AirPlayAppleMusic::abTitel(['1', '2', '3', '4'], '3') === ['3', '4', '1', '2']
+    && AirPlayAppleMusic::abTitel(['1', '2'], null) === ['1', '2'] && AirPlayAppleMusic::abTitel(['1', '2'], '9') === ['9', '1', '2']);
+$q = AirPlayBplist::decode(AirPlayAppleMusic::warteschlange(['3', '4', '1', '2'], true, true));
+pruefe('Zufall mit festem ersten Titel: beginnt mit dem ausgewählten Lied', $q['PQts'] === 3 && $q['PQfg'] === '3');
 [$n] = AirPlayMrp::warteschlangeSetzen('PLIST');
 $b = AirPlayProtobuf::msg(AirPlayProtobuf::decode($n), 6);
 pruefe('SetPlaybackQueue: Befehl 48, Optionen Feld 15', AirPlayProtobuf::int($b, 1) === 48 && AirPlayProtobuf::text(AirPlayProtobuf::msg($b, 2), 15) === 'PLIST');

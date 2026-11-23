@@ -87,8 +87,10 @@ trait AirPlayGeraetWiedergabe
     public function PlayPlaylist(string $Link, bool $Shuffle): bool
     {
         return $this->mitSperre(function () use ($Link, $Shuffle): bool {
-            $ids = AirPlayAppleMusic::songIds($this->favoritLink($Link));
-            $w = $this->ablauf()->titelliste($ids, $Shuffle);
+            $link = $this->favoritLink($Link);
+            $ids = AirPlayAppleMusic::songIds($link);
+            // Link auf ein bestimmtes Lied (?i=…): immer mit diesem Lied beginnen, Zufall erst danach
+            $w = $this->ablauf()->titelliste($ids, $Shuffle, AirPlayAppleMusic::startTitel($link) !== null);
             $this->wertSetzen('Zustand', self::ZUSTAND[$w['zustand']] ?? 0);
             $this->ergebnis(AirPlayText::t('✅ Apple Music started with %s songs: %s', min(count($ids), AirPlayAppleMusic::MAX_TITEL), trim($w['interpret'] . ' – ' . $w['titel'], ' –')));
             $this->kachelAktualisieren();

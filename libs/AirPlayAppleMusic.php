@@ -48,7 +48,7 @@ final class AirPlayAppleMusic
     {
         $eingabe = trim($eingabe);
         if (self::istLink($eingabe)) {
-            return self::songIdsAusSeite(self::seiteLaden($eingabe));
+            return self::abTitel(self::songIdsAusSeite(self::seiteLaden($eingabe)), self::startTitel($eingabe));
         }
         $ids = preg_split('/[\s,;]+/', $eingabe, -1, PREG_SPLIT_NO_EMPTY) ?: [];
         foreach ($ids as $id) {
@@ -57,6 +57,32 @@ final class AirPlayAppleMusic
             }
         }
         return array_values(array_unique($ids));
+    }
+
+    /**
+     * Ausgewähltes Lied eines Album-Links (…/album/…/1440771262?i=1440771270 — so teilt Apple Music ein einzelnes
+     * Lied); null = kein Lied ausgewählt.
+     */
+    public static function startTitel(string $link): ?string
+    {
+        parse_str((string)parse_url(trim($link), PHP_URL_QUERY), $werte);
+        $id = (string)($werte['i'] ?? '');
+        return preg_match('/^\d{4,15}$/', $id) === 1 ? $id : null;
+    }
+
+    /**
+     * Titelliste so drehen, dass sie mit dem ausgewählten Lied beginnt und danach dem Album folgt (die Titel davor
+     * kommen ans Ende) — wie beim Antippen eines Lieds in der Apple-Music-App.
+     * @param list<string> $ids
+     * @return list<string>
+     */
+    public static function abTitel(array $ids, ?string $start): array
+    {
+        if ($start === null) {
+            return $ids;
+        }
+        $pos = array_search($start, $ids, true);
+        return $pos === false ? array_merge([$start], $ids) : array_merge(array_slice($ids, $pos), array_slice($ids, 0, $pos));
     }
 
     public static function seiteLaden(string $link): string
@@ -104,8 +130,9 @@ final class AirPlayAppleMusic
     /**
      * Binär-Plist der Warteschlange (CommandOptions.systemAppPlaybackQueueData).
      * @param list<string> $ids Song-IDs, höchstens MAX_TITEL werden übernommen
+     * @param bool $ersterFest true = mit dem ersten Titel beginnen, auch bei Zufall (Link auf ein bestimmtes Lied)
      */
-    public static function warteschlange(array $ids, bool $zufall): string
+    public static function warteschlange(array $ids, bool $zufall, bool $ersterFest = false): string
     {
         $ids = array_slice(array_values(array_map('strval', $ids)), 0, self::MAX_TITEL);
         if ($ids === []) {
@@ -117,7 +144,7 @@ final class AirPlayAppleMusic
             'PQri' => self::ERSETZEN_WARTESCHLANGE_LEEREN,
             'PQfn' => 'Symcon',
             'PQst' => $ids,
-            'PQfg' => $zufall ? $ids[array_rand($ids)] : $ids[0],
+            'PQfg' => $zufall && !$ersterFest ? $ids[array_rand($ids)] : $ids[0],
             'PQts' => $zufall ? self::ZUFALL_TITEL : self::ZUFALL_AUS,
             'PQtr' => self::WIEDERHOLEN_AUS,
         ]);

@@ -67,9 +67,9 @@ final class AirPlayAblauf
      * Apple-Music-Titel als Warteschlange starten (Song-IDs aus AirPlayAppleMusic).
      * @param list<string> $ids
      */
-    public function titelliste(array $ids, bool $zufall): array
+    public function titelliste(array $ids, bool $zufall, bool $ersterFest = false): array
     {
-        $plist = AirPlayAppleMusic::warteschlange($ids, $zufall);
+        $plist = AirPlayAppleMusic::warteschlange($ids, $zufall, $ersterFest);
         return $this->mitFernsteuerung(function (AirPlayFernsteuerung $f) use ($plist): array {
             $f->warten(0.5);
             $f->warteschlange($plist);

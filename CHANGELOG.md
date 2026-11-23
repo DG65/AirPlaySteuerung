@@ -1,6 +1,12 @@
 # Changelog
 
-## 0.11.0 (unveröffentlicht)
+## 0.11.1 (unveröffentlicht)
+
+- Korrektur Apple Music: Ein Album-Link mit ausgewähltem Lied (`…/album/…?i=1440771270`, so teilt die Apple-Music-App
+  ein einzelnes Lied) startet jetzt genau dieses Lied, danach folgt das Album. Bisher lief das ganze Album, mit „Zufall“
+  ab einem beliebigen Titel. Zufall gilt jetzt erst ab dem zweiten Titel (live geprüft am HomePod, 23.11.2026).
+
+## 0.11.0 (23.11.2026)
 
 - Neu in der Kachel: **Als Nächstes** — die nächste geplante Ansage (Platzhalter für diesen Zeitpunkt ersetzt) oder der
   nächste Wecker mit Uhrzeit („heute 14:00", „morgen 06:30").
