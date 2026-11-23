@@ -5,7 +5,7 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
 
 [English version](README.en.md)
 
-> **Status: Beta 0.11.2.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
+> **Status: Beta 0.11.3.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
 > (1. Generation) und HomePod mini geprüft. Apple TV mit tvOS ist nach derselben Vorlage gebaut, aber
 > noch nicht an echter Hardware getestet. Bisher nur im Prüfstand, noch nicht im Alltag erprobt: Wecker, geplante
 > Ansagen, Nachtgrenze, Gruppen, Anwesenheit und die Push-Mitteilung von AirPlay-Klima. Die Online-Stimmen (Azure,
@@ -294,6 +294,11 @@ RTSP-Sitzung (ChaCha20-Poly1305), Audiostrom als rohes PCM in Echtzeit. Anzeige 
 Protocol (MRP) im AirPlay-Tunnel. Verbindungen bestehen nur für die Dauer einer Aktion. Der Ablauf ist nach der freien Bibliothek
 [pyatv](https://github.com/postlund/pyatv) (MIT) in PHP nachgebaut, siehe
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+## Rückmeldungen
+
+Fragen, Erfahrungen, Wünsche und Fehlerberichte bitte im
+[Forum-Thread zur AirPlay-Steuerung](https://community.symcon.de/t/beta-modul-airplay-steuerung-durchsagen-wecker-und-player-kachel-fuer-homepods-direkt-ueber-airplay-2/145020).
 
 ## Lizenz
 

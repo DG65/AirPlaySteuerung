@@ -1,6 +1,11 @@
 # Changelog
 
-## 0.11.2 (unveröffentlicht)
+## 0.11.3 (unveröffentlicht)
+
+- Formular, Panel „Rückmeldung": Rückmeldungen und Fehlerberichte gehen jetzt über den Forum-Thread (Knopf „Zum
+  Forum-Thread", Thread 145020) statt über GitHub-Issues. README mit Abschnitt „Rückmeldungen".
+
+## 0.11.2 (23.11.2026, Store-Beta 21813)
 
 - Store-Vorbereitung: englische Suchnamen der Module (AirPlay Device, AirPlay Climate, AirPlay Speech Output,
   AirPlay Configurator), Erklärung der WebHook-Anmeldung im Code, Raumklima-Meldungen erst nach vollständigem

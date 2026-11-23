@@ -61,7 +61,7 @@ trait AirPlayFormular
     ];
 
     private static $AIRPLAY_REPO_URL     = 'https://github.com/DG65/AirPlaySteuerung';
-    private static $AIRPLAY_ISSUES_URL   = 'https://github.com/DG65/AirPlaySteuerung/issues';
+    private static $AIRPLAY_FORUM_URL    = 'https://community.symcon.de/t/beta-modul-airplay-steuerung-durchsagen-wecker-und-player-kachel-fuer-homepods-direkt-ueber-airplay-2/145020';
     private static $AIRPLAY_LICENSE_URL  = 'https://github.com/DG65/AirPlaySteuerung/blob/beta/LICENSE';
     private static $AIRPLAY_PAYPAL_URL   = 'https://paypal.me/DietmarGureth';
     private static $AIRPLAY_LIBRARY_GUID = '{F4937700-A1EF-41E6-B9B4-9F375903FB30}';
@@ -174,12 +174,13 @@ trait AirPlayFormular
         if ($this->ReadAttributeBoolean('FeedbackHintGone')) {
             return null;
         }
+        // Rückmeldungen und Fehlerberichte nur über den Forum-Thread (Dietmar, 23.11.2026).
         return [
             'type' => 'ExpansionPanel', 'name' => 'FeedbackHintPanel', 'expanded' => true,
             'caption' => '💬  Feedback',
             'items' => [
-                ['type' => 'Label', 'caption' => '🧪 AirPlay-Steuerung is new. Does it work with your device? Is something missing? Please report it — with the device type and the column "Announcement" from the configurator.'],
-                ['type' => 'Button', 'caption' => 'Report a bug on GitHub', 'onClick' => "echo '" . self::$AIRPLAY_ISSUES_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => '🧪 AirPlay-Steuerung is new. Does it work with your device? Is something missing? Found a bug? Please post in the AirPlay-Steuerung thread in the Symcon forum — with the device type and the column "Announcement" from the configurator.'],
+                ['type' => 'Button', 'caption' => 'Go to the forum thread', 'onClick' => "echo '" . self::$AIRPLAY_FORUM_URL . "';", 'link' => true],
                 ['type' => 'Button', 'caption' => 'Got it – don\'t show again', 'onClick' => $this->airplayPrefix() . '_AckFeedbackHint($id);'],
             ],
         ];

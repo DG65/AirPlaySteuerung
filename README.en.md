@@ -5,7 +5,7 @@ no Docker, no additional software on the Symcon host.
 
 [Deutsche Version](README.md)
 
-> **Status: beta 0.11.2.** Announcements, resuming afterwards, display and control have been tested on
+> **Status: beta 0.11.3.** Announcements, resuming afterwards, display and control have been tested on
 > HomePod (1st generation) and HomePod mini. Apple TV with tvOS follows the same reference, but has not
 > been tested on real hardware yet. So far only covered by the test bench, not yet proven in daily use: alarm clock,
 > scheduled announcements, night limit, groups, presence and the push notification of AirPlay-Klima. The online voices
@@ -289,6 +289,12 @@ The module speaks AirPlay 2 itself: pairing without PIN entry (SRP-6a, 3072 bit)
 session (ChaCha20-Poly1305) and the audio stream as raw PCM in real time. Display and control use the Media
 Remote Protocol (MRP) inside the AirPlay tunnel. Connections exist only for the duration of an action. The protocol flow is reimplemented in PHP after the open library
 [pyatv](https://github.com/postlund/pyatv) (MIT), see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+## Feedback
+
+Questions, experiences, wishes and bug reports please in the
+[forum thread on AirPlay-Steuerung](https://community.symcon.de/t/beta-modul-airplay-steuerung-durchsagen-wecker-und-player-kachel-fuer-homepods-direkt-ueber-airplay-2/145020)
+(German forum, English posts are fine).
 
 ## License
 
