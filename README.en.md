@@ -79,7 +79,8 @@ router for Matter does not need this module.
 
 ## Setup
 
-1. Module control → add library: `https://github.com/DG65/AirPlaySteuerung`
+1. Module Store: search for **AirPlay Control** in the management console and install it. The module is listed under
+   **Beta** and is only found by its exact name.
 2. Create an **AirPlay configurator** instance, check the list, click "Create" for the HomePod.
 3. In the **AirPlay device**, click "🔗 Test connection (no sound)", then "🔔 Play chime".
 

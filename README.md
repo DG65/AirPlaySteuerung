@@ -80,7 +80,8 @@ Thread-Border-Router für Matter braucht dieses Modul nicht.
 
 ## Einrichtung
 
-1. Modulverwaltung → Bibliothek hinzufügen: `https://github.com/DG65/AirPlaySteuerung`
+1. Module Store: in der Verwaltungskonsole nach **AirPlay-Steuerung** suchen und installieren. Das Modul steht im
+   Bereich **Beta** und wird nur mit genauem Namen gefunden.
 2. Instanz **AirPlay-Konfigurator** anlegen, Liste prüfen, beim gewünschten HomePod „Erstellen".
 3. Im **AirPlay-Gerät** „🔗 Verbindung testen (ohne Ton)" und danach „🔔 Gong abspielen".
 
