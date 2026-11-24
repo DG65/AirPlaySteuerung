@@ -1,6 +1,11 @@
 # Changelog
 
-## 0.11.4 (unveröffentlicht)
+## Nächste Version (unveröffentlicht)
+
+- Objektbaum, Spalte „Typ“: lesbare Modulnamen („AirPlay-Steuerung Gerät“, „… Konfigurator“, „… Sprachausgabe“,
+  „… Klima“) über locale.json; die technischen Namen bleiben unverändert.
+
+## 0.11.4 (23.11.2026, Store-Beta)
 
 - Formular: Der Forum-Thread steht jetzt immer im Panel „Dokumentation & Hilfe" — auch in Instanzen, in denen der
   Rückmelde-Hinweis weggeklickt wurde. Der Hinweis selbst erscheint mit dem neuen Rückmeldeweg einmal wieder in jeder
