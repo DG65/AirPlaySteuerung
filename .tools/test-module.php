@@ -79,6 +79,12 @@ $naechste = $g->ReadAttributeInteger('ScheduleNext');
 pruefe('mit Adresse: Variablen, Abfrage-Timer, nächste volle Stunde geplant',
     $g->status === IS_ACTIVE && $g->timer['Update'] === 15000 && Attrappe::kind(200, 'Titel') !== false && Attrappe::kind(200, 'Cover') !== false
     && (int)date('i', $naechste) === 0 && $naechste > time() && $naechste - time() <= 3600);
+$cover = Attrappe::kind(200, 'Cover');
+pruefe('Cover-Medium hat sofort eine Datei (Platzhalter), Kachel zeigt trotzdem kein Bild',
+    IPS_GetMedia($cover)['MediaIsAvailable'] && privat($g, 'kachelDaten', false, true)['cover'] === '');
+Attrappe::$objekte[$cover]['wert'] = '';   // Instanz aus 0.11.5: Medium ohne Datei
+$g->ApplyChanges();
+pruefe('Ältere Instanz ohne Cover-Datei bekommt beim Übernehmen den Platzhalter', IPS_GetMedia($cover)['MediaIsAvailable']);
 $form = json_decode($g->GetConfigurationForm(), true);
 $panels = array_column(array_filter($form['elements'], fn ($e) => ($e['type'] ?? '') === 'ExpansionPanel'), 'caption');
 pruefe('Formular: alle Fachpanels', count(array_intersect(['🔌  Connection & display', '📢  Announcements', '🗣️  Speech output', '⏰  Scheduled announcements', '⏰  Alarm clock', '🎵  Apple Music', '📜  Announcement log'], $panels)) === 7);

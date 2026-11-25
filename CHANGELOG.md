@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.11.5 (unveröffentlicht)
+## 0.11.6 (unveröffentlicht)
+
+- Das Cover-Medium eines AirPlay-Geräts bekommt beim Anlegen ein unsichtbares Platzhalterbild. Bisher zeigte die
+  Konsole „Datei nicht vorhanden", bis der HomePod zum ersten Mal etwas mit Cover abspielte (Forum-Thread 145020 #4).
+  Bestehende Instanzen ohne Cover-Datei bekommen den Platzhalter beim nächsten Übernehmen bzw. Modul-Update. Auch
+  Titel ohne Bild (Radio, Podcast) setzen jetzt den Platzhalter statt einer leeren Datei; die Kachel zeigt dann ♪.
+
+## 0.11.5 (25.11.2026, Store-Beta)
 
 - **Korrektur:** Ein neues AirPlay-Gerät ließ sich nicht anlegen („Konnte Instanz nicht erstellen … Datei
   #AirPlayCover_….jpg existiert nicht", Symcon 9.0 und 9.1, Forum-Thread 145020). Das Cover-Medium hat beim Anlegen

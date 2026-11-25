@@ -182,7 +182,11 @@ trait AirPlayGeraetWiedergabe
                 $this->EnableAction($ident);
             }
         }
-        if (@IPS_GetObjectIDByIdent('Cover', $this->InstanceID) === false) {
+        $vorhanden = @IPS_GetObjectIDByIdent('Cover', $this->InstanceID);
+        if ($vorhanden !== false && IPS_MediaExists($vorhanden) && empty(IPS_GetMedia($vorhanden)['MediaIsAvailable'])) {
+            IPS_SetMediaContent($vorhanden, self::COVER_PLATZHALTER);   // ältere Instanz ohne Datei (bis 0.11.5)
+        }
+        if ($vorhanden === false) {
             $id = IPS_CreateMedia(MEDIATYPE_IMAGE);
             IPS_SetParent($id, $this->InstanceID);
             IPS_SetIdent($id, 'Cover');
@@ -190,6 +194,7 @@ trait AirPlayGeraetWiedergabe
             IPS_SetPosition($id, 80);
             IPS_SetMediaCached($id, true);
             IPS_SetMediaFile($id, 'AirPlayCover_' . $this->InstanceID . '.jpg', false);
+            IPS_SetMediaContent($id, self::COVER_PLATZHALTER);
         }
     }
 
@@ -234,7 +239,7 @@ trait AirPlayGeraetWiedergabe
         if ($neuesCover) {
             $cover = @IPS_GetObjectIDByIdent('Cover', $this->InstanceID);
             if ($cover !== false) {
-                IPS_SetMediaContent($cover, base64_encode($w['cover']));
+                IPS_SetMediaContent($cover, $w['cover'] !== '' ? base64_encode($w['cover']) : self::COVER_PLATZHALTER);
             }
             $this->WriteAttributeString('CoverKey', $schluessel . ($w['cover'] === '' ? self::COVER_LEER : ''));
         }

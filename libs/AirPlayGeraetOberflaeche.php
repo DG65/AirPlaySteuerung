@@ -113,7 +113,7 @@ trait AirPlayGeraetOberflaeche
         // Neue Instanz: das Cover-Medium hat noch keine Datei, IPS_GetMediaContent würde warnen und das Anlegen
         // abbrechen (Forum 145020 #2, Symcon 9.0/9.1).
         $inhalt = $id !== false && self::medienDateiDa($id) ? (string)IPS_GetMediaContent($id) : '';
-        if ($inhalt === '') {
+        if ($inhalt === '' || $inhalt === self::COVER_PLATZHALTER) {
             return '';
         }
         return 'data:' . (str_starts_with($inhalt, 'iVBOR') ? 'image/png' : 'image/jpeg') . ';base64,' . $inhalt;

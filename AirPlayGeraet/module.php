@@ -34,6 +34,11 @@ class AirPlayGeraet extends IPSModule
     private const STATUS_NICHT_ERREICHBAR = 203;
     private const GUID_SPRACHE = '{1995F9C5-57BE-4CCB-8980-07D0D4E1867E}';
     /** Raumklima in der Kachel: Eigenschaft → Schlüssel in den Kacheldaten */
+    /**
+     * Platzhalter fürs Cover-Medium (1×1 Pixel, transparent): Ohne Datei zeigt die Konsole „Datei nicht vorhanden",
+     * und ein leerer Inhalt legt keine Datei an (live geprüft 25.11.2026). Die Kachel zeigt beim Platzhalter das ♪.
+     */
+    private const COVER_PLATZHALTER = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
     /** Cover in der Kachel: Einstellung → Kantenlänge in px (0 = ausgeblendet) */
     private const COVER_GROESSEN = ['off' => 0, 'small' => 72, 'medium' => 112, 'large' => 160];
     private const KLIMA_VARIABLEN = ['TemperatureVariable' => 'temperatur', 'HumidityVariable' => 'feuchte'];
