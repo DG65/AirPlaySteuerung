@@ -1,7 +1,11 @@
 # Changelog
 
-## Nächste Version (unveröffentlicht)
+## 0.11.5 (unveröffentlicht)
 
+- **Korrektur:** Ein neues AirPlay-Gerät ließ sich nicht anlegen („Konnte Instanz nicht erstellen … Datei
+  #AirPlayCover_….jpg existiert nicht", Symcon 9.0 und 9.1, Forum-Thread 145020). Das Cover-Medium hat beim Anlegen
+  noch keine Datei; das Modul liest Medien jetzt nur noch, wenn die Datei vorhanden ist (auch bei AnnounceMedia und
+  im Zwischenspeicher der Sprachausgabe). Bestehende Instanzen waren nicht betroffen.
 - Objektbaum, Spalte „Typ“: lesbare Modulnamen („AirPlay-Steuerung Gerät“, „… Konfigurator“, „… Sprachausgabe“,
   „… Klima“) über locale.json; die technischen Namen bleiben unverändert.
 

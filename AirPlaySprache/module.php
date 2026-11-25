@@ -264,7 +264,7 @@ class AirPlaySprache extends IPSModule
             return null;
         }
         $id = @IPS_GetObjectIDByIdent('C' . $kennung, $this->InstanceID);
-        if ($id === false) {
+        if ($id === false || empty(IPS_GetMedia($id)['MediaIsAvailable'])) {
             return null;
         }
         $inhalt = (string)IPS_GetMediaContent($id);

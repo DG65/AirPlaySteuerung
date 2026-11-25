@@ -33,7 +33,7 @@ trait AirPlayGeraetDurchsage
         if (!@IPS_MediaExists($MediaID)) {
             return $this->fehler(AirPlayText::t('Media object %s does not exist.', $MediaID));
         }
-        $inhalt = base64_decode((string)IPS_GetMediaContent($MediaID), true);
+        $inhalt = !empty(IPS_GetMedia($MediaID)['MediaIsAvailable']) ? base64_decode((string)IPS_GetMediaContent($MediaID), true) : false;
         if ($inhalt === false || $inhalt === '') {
             return $this->fehler(AirPlayText::t('Media object %s is empty.', $MediaID));
         }

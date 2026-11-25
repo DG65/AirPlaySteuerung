@@ -101,10 +101,18 @@ trait AirPlayGeraetOberflaeche
         return $werte;
     }
 
+    /** true, wenn das Medienobjekt existiert und seine Datei vorhanden ist (sonst warnt IPS_GetMediaContent). */
+    private static function medienDateiDa(int $id): bool
+    {
+        return @IPS_MediaExists($id) && !empty(IPS_GetMedia($id)['MediaIsAvailable']);
+    }
+
     private function coverDatenUrl(): string
     {
         $id = @IPS_GetObjectIDByIdent('Cover', $this->InstanceID);
-        $inhalt = $id !== false ? (string)IPS_GetMediaContent($id) : '';
+        // Neue Instanz: das Cover-Medium hat noch keine Datei, IPS_GetMediaContent würde warnen und das Anlegen
+        // abbrechen (Forum 145020 #2, Symcon 9.0/9.1).
+        $inhalt = $id !== false && self::medienDateiDa($id) ? (string)IPS_GetMediaContent($id) : '';
         if ($inhalt === '') {
             return '';
         }

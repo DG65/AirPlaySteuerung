@@ -149,8 +149,9 @@ function IPS_SetPosition($id, $p) {}
 function IPS_SetMediaCached($id, $v) {}
 function IPS_SetMediaFile($id, $f, $v) {}
 function IPS_SetMediaContent($id, $c) { Attrappe::$objekte[$id]['wert'] = $c; Attrappe::$objekte[$id]['geaendert'] = time(); }
-function IPS_GetMediaContent($id) { return Attrappe::$objekte[$id]['wert']; }
-function IPS_GetMedia($id) { return ['MediaUpdated' => Attrappe::$objekte[$id]['geaendert']]; }
+// Wie Symcon: Ohne Datei (neues Medium, noch kein Inhalt) warnt IPS_GetMediaContent — die Attrappe wirft, damit es auffällt.
+function IPS_GetMediaContent($id) { if (Attrappe::$objekte[$id]['wert'] === '') { throw new RuntimeException("Attrappe: Datei von Medium $id existiert nicht"); } return Attrappe::$objekte[$id]['wert']; }
+function IPS_GetMedia($id) { return ['MediaUpdated' => Attrappe::$objekte[$id]['geaendert'], 'MediaIsAvailable' => Attrappe::$objekte[$id]['wert'] !== '']; }
 function IPS_DeleteMedia($id, $datei) { unset(Attrappe::$objekte[$id]); return true; }
 function IPS_SemaphoreEnter($n, $t) { return true; }
 function IPS_SemaphoreLeave($n) { return true; }
