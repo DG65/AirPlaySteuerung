@@ -154,6 +154,8 @@ $faelle = [
     'Apple TV 3' => [['model=AppleTV3,1', 'features=0x5A7FFFF7,0xE', 'flags=0x44'], 'appletv_alt', 'nein'],
     'Marantz' => [['model=Marantz', 'features=0x445F8A00,0x801C340', 'flags=0x404'], 'fremd', 'ungeprueft'],
     'Apple TV 4K' => [['model=AppleTV11,1', 'features=0x4A7FDFD5,0x3C155FDE', 'flags=0x18644'], 'appletv', 'nein'],
+    'HomePod mini 2' => [['model=AudioAccessory11,1', 'features=0x4A7FCA00,0x3C356BD0', 'flags=0x98404', 'acl=0'], 'homepod', 'ungeprueft'],
+    'HomePod 2. Gen.' => [['model=AudioAccessory6,1', 'features=0x4A7FCA00,0x3C356BD0', 'flags=0x98404', 'acl=0'], 'homepod', 'ungeprueft'],
     'nur Zuhause' => [['model=AudioAccessory6,1', 'features=0x4A7FCA00,0x3C356BD0', 'flags=0x98404', 'acl=1'], 'homepod', 'nein'],
 ];
 foreach ($faelle as $name => [$txt, $familie, $durchsage]) {

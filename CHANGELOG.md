@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.12.0 (unveröffentlicht)
+## 0.12.1 (unveröffentlicht)
+
+- Der Konfigurator kennt den **HomePod mini 2** (Oktober 2026, Kennung AudioAccessory11,1) und legt ihn mit Anzeige und
+  Steuerung an. Bisher wäre er als fremdes Gerät ohne Steuerung angelegt worden.
+- Die Spalte „Durchsage" sagt „✅ ja" nur noch bei den am echten Gerät geprüften Modellen (HomePod 1. Generation,
+  HomePod mini). HomePod (2. Generation) und HomePod mini 2 stehen auf „⚠️ ungeprüft", bis ein Tester sie bestätigt.
+
+## 0.12.0 (28.11.2026, Store-Beta)
 
 - Neu im **Konfigurator: Geräte per IP-Adresse hinzufügen**, für HomePods, die die Suche nicht erreicht (anderes
   VLAN, VPN, Symcon in Docker ohne Host-Netz; Forum-Thread 145020 #7). Der Konfigurator fragt das Gerät direkt

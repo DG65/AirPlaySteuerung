@@ -5,7 +5,7 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
 
 [English version](README.en.md)
 
-> **Status: Beta 0.12.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
+> **Status: Beta 0.12.1.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
 > (1. Generation) und HomePod mini geprüft. Apple TV mit tvOS ist nach derselben Vorlage gebaut, aber
 > noch nicht an echter Hardware getestet. Bisher nur im Prüfstand, noch nicht im Alltag erprobt: Wecker, geplante
 > Ansagen, Nachtgrenze, Gruppen, Anwesenheit und die Push-Mitteilung von AirPlay-Klima. Die Online-Stimmen (Azure,
@@ -289,6 +289,9 @@ für Home Assistant.
 
 - Die Anzeige wird abgefragt, nicht laufend gemeldet: Änderungen erscheinen mit bis zu einem
   Abfrage-Abstand Verzögerung. Eine Abfrage hält einen PHP-Thread etwa 2 Sekunden.
+- HomePod (2. Generation) und HomePod mini 2 (2026, Kennung AudioAccessory11,1) erkennt der Konfigurator und legt sie
+  mit Anzeige und Steuerung an. Sie laufen über dasselbe Protokoll, stehen aber auf „⚠️ ungeprüft", bis jemand sie im
+  Forum-Thread bestätigt.
 - Apple TV (tvOS): Anzeige und Steuerung der Wiedergabe sind nach Vorlage gebaut, aber ungeprüft. Ein/Aus,
   Fernbedienungstasten und Apps sind nicht vorgesehen (siehe „Ziele und Abgrenzung").
 - Geräte anderer Hersteller mit AirPlay 2 (z. B. AV-Receiver) stehen auf „⚠️ ungeprüft": Sie bieten

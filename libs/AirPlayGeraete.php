@@ -25,6 +25,7 @@ final class AirPlayGeraete
         'AudioAccessory5,1' => ['homepod', 'HomePod mini'],
         'AudioAccessorySingle5,1' => ['homepod', 'HomePod mini'],
         'AudioAccessory6,1' => ['homepod', 'HomePod (2nd generation)'],
+        'AudioAccessory11,1' => ['homepod', 'HomePod mini (2nd generation)'],   // Okt. 2026 (EveryMac, homey-apple #56)
         'AppleTV1,1' => ['appletv_alt', 'Apple TV (1st generation)'],
         'AppleTV2,1' => ['appletv_alt', 'Apple TV (2nd generation)'],
         'AppleTV3,1' => ['appletv_alt', 'Apple TV (3rd generation)'],
@@ -36,6 +37,12 @@ final class AirPlayGeraete
         'AirPort4,107' => ['airport', 'AirPort Express'],
         'AirPort10,115' => ['airport', 'AirPort Express (2nd generation)'],
     ];
+
+    /**
+     * Am echten Gerät geprüft (Durchsage, Anzeige, Steuerung): HomePod 1. Generation und HomePod mini. Andere
+     * HomePods laufen über dasselbe Protokoll, stehen aber auf „ungeprüft", bis ein Tester sie bestätigt.
+     */
+    private const GEPRUEFT = ['AudioAccessory1,1', 'AudioAccessory1,2', 'AudioAccessory5,1', 'AudioAccessorySingle5,1'];
 
     /** TXT-Einträge „schluessel=wert" → Feld (Schlüssel klein). */
     public static function txt(array $eintraege): array
@@ -127,7 +134,7 @@ final class AirPlayGeraete
             [$durchsage, $grund] = ['nein', 'AirPlay limited to the current user'];
         } elseif (!$transient) {
             [$durchsage, $grund] = ['nein', 'AirPlay 1 only'];
-        } elseif ($familie === 'homepod') {
+        } elseif ($familie === 'homepod' && in_array($modell, self::GEPRUEFT, true)) {
             $durchsage = 'ja';
         }
 

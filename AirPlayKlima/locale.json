@@ -448,7 +448,8 @@
             "Address %s removed.": "Adresse %s entfernt.",
             "Manual addresses: %s": "Adressen von Hand: %s",
             "No manual addresses.": "Keine Adressen von Hand.",
-            "not reachable": "nicht erreichbar"
+            "not reachable": "nicht erreichbar",
+            "HomePod mini (2nd generation)": "HomePod mini (2. Generation)"
         }
     }
 }

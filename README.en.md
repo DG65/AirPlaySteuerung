@@ -5,7 +5,7 @@ no Docker, no additional software on the Symcon host.
 
 [Deutsche Version](README.md)
 
-> **Status: beta 0.12.0.** Announcements, resuming afterwards, display and control have been tested on
+> **Status: beta 0.12.1.** Announcements, resuming afterwards, display and control have been tested on
 > HomePod (1st generation) and HomePod mini. Apple TV with tvOS follows the same reference, but has not
 > been tested on real hardware yet. So far only covered by the test bench, not yet proven in daily use: alarm clock,
 > scheduled announcements, night limit, groups, presence and the push notification of AirPlay-Klima. The online voices
@@ -285,6 +285,9 @@ Home automations sometimes stop running; switching them off and on again helps. 
 
 - The display is polled, not pushed: changes appear with up to one polling interval of delay. A query
   keeps a PHP thread busy for about 2 seconds.
+- HomePod (2nd generation) and HomePod mini 2 (2026, identifier AudioAccessory11,1) are recognised by the configurator
+  and created with display and control. They use the same protocol but are shown as "⚠️ untested" until someone
+  confirms them in the forum thread.
 - Apple TV (tvOS): display and playback control follow the reference but are untested. Power, remote
   buttons and apps are not planned (see "Goals and scope").
 - AirPlay 2 receivers from other manufacturers (e.g. AV receivers) are shown as "⚠️ untested": they

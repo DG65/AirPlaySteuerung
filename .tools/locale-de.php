@@ -475,6 +475,7 @@ $de = [
     'Manual addresses: %s' => 'Adressen von Hand: %s',
     'No manual addresses.' => 'Keine Adressen von Hand.',
     'not reachable' => 'nicht erreichbar',
+    'HomePod mini (2nd generation)' => 'HomePod mini (2. Generation)',
 ];
 
 $json = json_encode(['translations' => ['de' => $de]], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n";
