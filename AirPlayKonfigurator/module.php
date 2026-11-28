@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/AirPlayFormular.php';
 require_once __DIR__ . '/../libs/AirPlayGeraete.php';
+require_once __DIR__ . '/../libs/AirPlaySitzung.php';
 
 // ===========================================================================
 // AirPlay-Konfigurator — findet AirPlay-Empfänger im Netz und legt sie an.
@@ -14,6 +15,10 @@ require_once __DIR__ . '/../libs/AirPlayGeraete.php';
 // Geräte, die eine PIN-Kopplung verlangen (z. B. viele Fernseher), werden
 // angezeigt, aber nicht zum Anlegen angeboten.
 // Vorhandene Instanzen erkennt der Konfigurator an der Geräte-ID.
+// Adressen von Hand (ab 0.12.0, Forum 145020 #7): für Geräte, die die Suche
+// nicht erreicht (anderes VLAN, VPN, Docker ohne Host-Netz). Das Gerät wird
+// direkt per GET /info gefragt; dessen Feld txtAirPlay ist derselbe Bonjour-
+// Eintrag wie bei der Suche. Gemerkt im Attribut ManualHosts.
 // ===========================================================================
 
 class AirPlayKonfigurator extends IPSModule
@@ -23,6 +28,8 @@ class AirPlayKonfigurator extends IPSModule
     private const DNSSD = '{780B2D48-916C-4D59-AD35-5A429B2355A5}';
     private const GERAET = '{2BB8B63A-9A5A-4704-8230-C18259F9F3E7}';
     private const DIENST = '_airplay._tcp';
+    /** Zeitlimit je Adresse von Hand beim Öffnen des Formulars (Sekunden), damit es nicht hängt. */
+    private const ZEITLIMIT_HAND = 2.0;
 
     public function __construct($InstanceID)
     {
@@ -35,6 +42,7 @@ class AirPlayKonfigurator extends IPSModule
         parent::Create();
         $this->RegisterAttributeInteger('LastDiscoveryTs', 0);
         $this->RegisterAttributeInteger('LastDiscoveryCount', 0);
+        $this->RegisterAttributeString('ManualHosts', '[]');
         $this->registerFormAttributes();
     }
 
@@ -54,6 +62,43 @@ class AirPlayKonfigurator extends IPSModule
         $this->UpdateFormField('Geraete', 'values', (string)json_encode($this->zeilen($gefunden)));
         $n = count($gefunden);
         echo AirPlayText::t($n === 1 ? '🔍 %s AirPlay device found.' : '🔍 %s AirPlay devices found.', $n);
+    }
+
+    /** Formular: Gerät per IP-Adresse oder Host-Name hinzufügen; es wird sofort gefragt, ob es antwortet. */
+    public function AddAddress(string $Address): void
+    {
+        $adresse = trim($Address);
+        if (preg_match('/^[A-Za-z0-9][A-Za-z0-9.\-]{0,252}$/', $adresse) !== 1) {
+            echo AirPlayText::t('❌ Please enter an IP address or host name, e.g. 192.168.20.15.');
+            return;
+        }
+        try {
+            $g = self::abfragen($adresse, 5.0);
+        } catch (Throwable $e) {
+            echo AirPlayText::t('❌ %s does not answer as AirPlay device: %s', $adresse, $e instanceof AirPlayFehler ? AirPlayText::fehler($e) : $e->getMessage());
+            return;
+        }
+        $hosts = $this->handAdressen();
+        if (!in_array($adresse, $hosts, true)) {
+            $hosts[] = $adresse;
+            $this->WriteAttributeString('ManualHosts', (string)json_encode($hosts));
+        }
+        $this->Search();
+        echo "\n" . AirPlayText::t('✅ %s (%s) added — create it in the list.', $g['name'] !== '' ? $g['name'] : $adresse, self::typText($g));
+    }
+
+    /** Formular: Adresse von Hand wieder entfernen (eine angelegte Instanz bleibt bestehen). */
+    public function RemoveAddress(string $Address): void
+    {
+        $hosts = $this->handAdressen();
+        $rest = array_values(array_filter($hosts, fn (string $h): bool => $h !== trim($Address)));
+        if (count($rest) === count($hosts)) {
+            echo AirPlayText::t('ℹ️ %s is not in the list of manual addresses.', trim($Address));
+            return;
+        }
+        $this->WriteAttributeString('ManualHosts', (string)json_encode($rest));
+        $this->Search();
+        echo "\n" . AirPlayText::t('Address %s removed.', trim($Address));
     }
 
     /** Gefundene Geräte als JSON (Name, Adresse, Modell, Einordnung). */
@@ -87,9 +132,39 @@ class AirPlayKonfigurator extends IPSModule
                 $gefunden[$g['deviceId'] !== '' ? $g['deviceId'] : $name] = $g;
             }
         }
+        foreach ($this->handAdressen() as $adresse) {
+            try {
+                $g = self::abfragen($adresse, self::ZEITLIMIT_HAND);
+            } catch (Throwable $e) {
+                $g = AirPlayGeraete::einordnen([]) + ['name' => $adresse, 'adresse' => $adresse, 'port' => AirPlaySitzung::PORT];
+                $g['durchsage'] = 'nein';
+                $g['grund'] = 'not reachable';
+            }
+            $schluessel = $g['deviceId'] !== '' ? $g['deviceId'] : 'hand:' . $adresse;
+            $gefunden[$schluessel] ??= $g;   // Findet die Suche das Gerät auch, gilt ihr Eintrag
+        }
         $this->WriteAttributeInteger('LastDiscoveryTs', time());
         $this->WriteAttributeInteger('LastDiscoveryCount', count($gefunden));
         return $gefunden;
+    }
+
+    /** @return list<string> */
+    private function handAdressen(): array
+    {
+        $liste = json_decode($this->ReadAttributeString('ManualHosts'), true);
+        return is_array($liste) ? array_values(array_filter($liste, 'is_string')) : [];
+    }
+
+    /** Gerät direkt fragen (GET /info, ohne Kopplung und ohne Ton). */
+    private static function abfragen(string $adresse, float $zeitlimit): array
+    {
+        $s = new AirPlaySitzung($adresse, null, AirPlaySitzung::PORT, $zeitlimit);
+        try {
+            $info = $s->info();
+        } finally {
+            $s->schliessen();
+        }
+        return AirPlayGeraete::ausInfo($info) + ['adresse' => $adresse, 'port' => AirPlaySitzung::PORT];
     }
 
     private static function typText(array $g): string
@@ -188,7 +263,7 @@ class AirPlayKonfigurator extends IPSModule
     protected function airplayDoku(): array
     {
         return [
-            'The search uses the DNS-SD instance of Symcon to look for the service _airplay._tcp. That only reaches the same network segment: behind VLAN boundaries, Docker without host network or VPN the search finds nothing. In that case create an AirPlay device manually and enter the address.',
+            'The search uses the DNS-SD instance of Symcon to look for the service _airplay._tcp. That only reaches the same network segment: behind VLAN boundaries, Docker without host network or VPN the search finds nothing. In that case add the device below with its IP address — the configurator then asks the device directly.',
             '"✅ yes" means tested on real hardware. "⚠️ untested" means the device offers the required AirPlay 2 pairing, but nobody has tried it yet — feedback is welcome.',
             'The configurator recognises existing instances by the device ID, so a changed IP address does not lead to a second entry. Enter the new address in the instance.',
         ];
@@ -214,6 +289,15 @@ class AirPlayKonfigurator extends IPSModule
                     ],
                     'values' => $this->zeilen($gefunden),
                 ],
+                ['type' => 'Label', 'caption' => 'Device not found (other VLAN, VPN, Docker without host network)? Enter its IP address — a fixed address (DHCP reservation) is recommended. Between VLANs the firewall must allow traffic between Symcon and the device in both directions (TCP 7000 and changing TCP/UDP ports).'],
+                ['type' => 'RowLayout', 'items' => [
+                    ['type' => 'ValidationTextBox', 'name' => 'ManualAddress', 'caption' => 'IP address or host name', 'width' => '260px'],
+                    ['type' => 'Button', 'caption' => '➕ Add', 'onClick' => 'AIRPC_AddAddress($id, $ManualAddress);'],
+                    ['type' => 'Button', 'caption' => '➖ Remove', 'onClick' => 'AIRPC_RemoveAddress($id, $ManualAddress);'],
+                ]],
+                ['type' => 'Label', 'caption' => $this->handAdressen() !== []
+                    ? AirPlayText::t('Manual addresses: %s', implode(', ', $this->handAdressen()))
+                    : AirPlayText::t('No manual addresses.')],
             ],
         ];
         return $this->airplayFormular([$suche], [], [['code' => 102, 'icon' => 'active', 'caption' => 'Ready']]);

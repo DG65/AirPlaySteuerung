@@ -139,7 +139,7 @@ function IPS_MediaExists($id) { return (Attrappe::$objekte[$id]['typ'] ?? '') ==
 function IPS_GetObjectIDByIdent($ident, $parent) { return Attrappe::kind((int)$parent, $ident); }
 function IPS_GetChildrenIDs($parent) { return array_keys(array_filter(Attrappe::$objekte, fn ($o) => $o['parent'] === $parent)); }
 function IPS_GetObject($id) { $o = Attrappe::$objekte[$id]; return ['ObjectType' => $o['typ'] === 'media' ? OBJECTTYPE_MEDIA : 2, 'ObjectIdent' => $o['ident'], 'ObjectName' => $o['name'], 'ObjectIsHidden' => $o['versteckt']]; }
-function IPS_GetName($id) { return Attrappe::$objekte[$id]['name']; }
+function IPS_GetName($id) { return Attrappe::$objekte[$id]['name'] ?? ('Instanz ' . $id); }
 function IPS_CreateMedia($typ) { return Attrappe::neu('media', 0, '', ''); }
 function IPS_SetParent($id, $p) { Attrappe::$objekte[$id]['parent'] = $p; }
 function IPS_SetIdent($id, $i) { Attrappe::$objekte[$id]['ident'] = $i; }

@@ -12,6 +12,7 @@ $basis = dirname(__DIR__);
 require $basis . '/AirPlayGeraet/module.php';
 require $basis . '/AirPlaySprache/module.php';
 require $basis . '/AirPlayKlima/module.php';
+require $basis . '/AirPlayKonfigurator/module.php';
 Attrappe::$module = ['AirPlayGeraet' => '{2BB8B63A-9A5A-4704-8230-C18259F9F3E7}', 'AirPlaySprache' => '{1995F9C5-57BE-4CCB-8980-07D0D4E1867E}'];
 
 // Funktionen, die Symcon aus den öffentlichen Methoden erzeugt
@@ -216,6 +217,22 @@ pruefe('Cover-Größe: Standard klein (72 px), groß 160 px, ausgeblendet 0', pr
     && [$g->setzen('TileCover', 'large'), privat($g, 'kachelDaten', false, false)['coverGroesse']][1] === 160
     && [$g->setzen('TileCover', 'off'), privat($g, 'kachelDaten', false, false)['coverGroesse']][1] === 0);
 $g->setzen('TileCover', 'small');
+
+echo "Konfigurator: Adressen von Hand\n";
+$k = new AirPlayKonfigurator(600);
+$k->Create();
+$k->ApplyChanges();
+ob_start(); $k->AddAddress('192.168.1.1; rm'); $aus = ob_get_clean();
+pruefe('ungültige Adresse abgelehnt', str_contains($aus, '❌') && $k->ReadAttributeString('ManualHosts') === '[]');
+ob_start(); $k->AddAddress('kein-geraet.invalid'); $aus = ob_get_clean();
+pruefe('Adresse ohne AirPlay-Gerät: Fehlermeldung, nichts gemerkt', str_contains($aus, '❌') && str_contains($aus, 'kein-geraet.invalid') && $k->ReadAttributeString('ManualHosts') === '[]', trim($aus));
+$k->WriteAttributeString('ManualHosts', '["kein-geraet.invalid"]');
+$form = $k->GetConfigurationForm();
+$zeilen = [];
+foreach (json_decode($form, true)['elements'] as $el) { foreach ($el['items'] ?? [] as $it) { if (($it['name'] ?? '') === 'Geraete') { $zeilen = $it['values']; } } }
+pruefe('gemerkte, nicht erreichbare Adresse erscheint in der Liste, ohne Anlegen', ($z = array_values(array_filter($zeilen, fn ($r) => $r['adresse'] === 'kein-geraet.invalid'))) !== [] && !isset($z[0]['create']) && str_contains($z[0]['durchsage'], 'not reachable') && count($zeilen) >= 1 && !isset($zeilen[0]['create']) && str_contains($zeilen[0]['durchsage'], 'not reachable'), json_encode($zeilen));
+ob_start(); $k->RemoveAddress('kein-geraet.invalid'); ob_end_clean();
+pruefe('Adresse entfernt', $k->ReadAttributeString('ManualHosts') === '[]');
 
 echo "AirPlay-Klima\n";
 Attrappe::$netz = [['Description' => 'wlan0', 'IP' => '192.168.2.8'], ['Description' => 'docker0', 'IP' => '172.17.0.1'], ['Description' => 'br0', 'IP' => '192.168.2.7']];

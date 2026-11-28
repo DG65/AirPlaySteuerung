@@ -218,7 +218,7 @@
             "%s AirPlay devices found (last search %s).": "%s AirPlay-Geräte gefunden (zuletzt gesucht %s Uhr).",
             "Finds HomePods, Apple TVs and other AirPlay receivers on the home network and creates them with one click as AirPlay device.": "Findet HomePods, Apple TVs und andere AirPlay-Empfänger im Heimnetz und legt sie mit einem Klick als AirPlay-Gerät an.",
             "The column \"Announcement\" shows which devices can play announcements. Devices that require pairing with a PIN (e.g. many TVs) are listed but cannot be created.": "Die Spalte „Durchsage\" zeigt, welche Geräte Durchsagen abspielen können. Geräte, die eine Kopplung mit PIN verlangen (z. B. viele Fernseher), werden angezeigt, lassen sich aber nicht anlegen.",
-            "The search uses the DNS-SD instance of Symcon to look for the service _airplay._tcp. That only reaches the same network segment: behind VLAN boundaries, Docker without host network or VPN the search finds nothing. In that case create an AirPlay device manually and enter the address.": "Die Suche fragt über die DNS-SD-Instanz von Symcon nach dem Dienst _airplay._tcp. Das reicht nur bis zum eigenen Netzsegment: hinter VLAN-Grenzen, in Docker ohne Host-Netz oder über VPN findet die Suche nichts. Dann ein AirPlay-Gerät von Hand anlegen und die Adresse eintragen.",
+            "The search uses the DNS-SD instance of Symcon to look for the service _airplay._tcp. That only reaches the same network segment: behind VLAN boundaries, Docker without host network or VPN the search finds nothing. In that case add the device below with its IP address — the configurator then asks the device directly.": "Die Suche fragt über die DNS-SD-Instanz von Symcon nach dem Dienst _airplay._tcp. Das reicht nur bis zum eigenen Netzsegment: Hinter VLAN-Grenzen, in Docker ohne Host-Netz oder über VPN findet sie nichts. Dann das Gerät unten mit seiner IP-Adresse hinzufügen — der Konfigurator fragt es danach direkt.",
             "\"✅ yes\" means tested on real hardware. \"⚠️ untested\" means the device offers the required AirPlay 2 pairing, but nobody has tried it yet — feedback is welcome.": "„✅ ja\" heißt: an echter Hardware geprüft. „⚠️ ungeprüft\" heißt: Das Gerät bietet die nötige AirPlay-2-Kopplung, ausprobiert hat es aber noch niemand — Rückmeldungen sind willkommen.",
             "The configurator recognises existing instances by the device ID, so a changed IP address does not lead to a second entry. Enter the new address in the instance.": "Der Konfigurator erkennt vorhandene Instanzen an der Geräte-ID; eine geänderte IP-Adresse führt also nicht zu einem zweiten Eintrag. Die neue Adresse trägt man in der Instanz ein.",
             "the text is empty": "der Text ist leer",
@@ -437,7 +437,18 @@
             "tomorrow": "morgen",
             "Temperature in the tile": "Temperatur in der Kachel",
             "Humidity in the tile": "Luftfeuchte in der Kachel",
-            "Optional: the tile shows these values next to the title, e.g. the values of AirPlay-Klima for this HomePod.": "Optional: Die Kachel zeigt diese Werte neben dem Titel, z. B. die Werte von AirPlay-Klima für diesen HomePod."
+            "Optional: the tile shows these values next to the title, e.g. the values of AirPlay-Klima for this HomePod.": "Optional: Die Kachel zeigt diese Werte neben dem Titel, z. B. die Werte von AirPlay-Klima für diesen HomePod.",
+            "Device not found (other VLAN, VPN, Docker without host network)? Enter its IP address — a fixed address (DHCP reservation) is recommended. Between VLANs the firewall must allow traffic between Symcon and the device in both directions (TCP 7000 and changing TCP/UDP ports).": "Gerät nicht gefunden (anderes VLAN, VPN, Docker ohne Host-Netz)? Seine IP-Adresse eintragen — eine feste Adresse (DHCP-Reservierung) ist sinnvoll. Zwischen VLANs muss die Firewall Verkehr zwischen Symcon und dem Gerät in beide Richtungen erlauben (TCP 7000 und wechselnde TCP-/UDP-Ports).",
+            "➕ Add": "➕ Hinzufügen",
+            "➖ Remove": "➖ Entfernen",
+            "❌ Please enter an IP address or host name, e.g. 192.168.20.15.": "❌ Bitte eine IP-Adresse oder einen Hostnamen eingeben, z. B. 192.168.20.15.",
+            "❌ %s does not answer as AirPlay device: %s": "❌ %s antwortet nicht als AirPlay-Gerät: %s",
+            "✅ %s (%s) added — create it in the list.": "✅ %s (%s) hinzugefügt — jetzt in der Liste anlegen.",
+            "ℹ️ %s is not in the list of manual addresses.": "ℹ️ %s steht nicht in der Liste der Adressen von Hand.",
+            "Address %s removed.": "Adresse %s entfernt.",
+            "Manual addresses: %s": "Adressen von Hand: %s",
+            "No manual addresses.": "Keine Adressen von Hand.",
+            "not reachable": "nicht erreichbar"
         }
     }
 }

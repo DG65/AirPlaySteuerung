@@ -135,6 +135,11 @@
 
 ## Geräteerkennung (`libs/AirPlayGeraete.php`)
 
+- Adressen von Hand (0.12.0): Konfigurator-Attribut `ManualHosts`, `AIRPC_AddAddress/RemoveAddress`. Abfrage per
+  `GET /info` (AirPlaySitzung::info, Zeitlimit 2 s beim Formular, 5 s beim Hinzufügen); `txtAirPlay` darin ist der
+  rohe Bonjour-TXT (Längenbyte + Text) → `AirPlayGeraete::ausInfo` nutzt dieselbe Einordnung wie die Suche (live
+  HomePod 1. Gen. 28.11.2026). macOS-AirPlay-Empfänger lauscht ebenfalls auf 7000 (im Prüfstand 127.0.0.1 = „Mac, PIN").
+
 - Aus TXT von `_airplay._tcp`: flags 0x8/0x200 → PIN nötig (LG OLED C9: 0x644), acl=1, act=2, pw/0x80,
   features Bit 43/48 = Kopplung ohne PIN möglich; fehlen beide → nur AirPlay 1 (Apple TV 3).
 - Testgeräte: HomePod (1. Gen.), HomePod mini, Apple TV 3, LG OLED C9, Marantz-AV-Receiver. Kein tvOS-Apple-TV

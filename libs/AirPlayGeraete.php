@@ -48,6 +48,41 @@ final class AirPlayGeraete
         return $out;
     }
 
+    /** DNS-TXT-Rohbytes (je Eintrag ein Längenbyte + Text) → Liste „schluessel=wert". */
+    public static function txtBytes(string $roh): array
+    {
+        $out = [];
+        for ($i = 0, $n = strlen($roh); $i < $n;) {
+            $laenge = ord($roh[$i]);
+            if ($laenge > 0) {
+                $out[] = substr($roh, $i + 1, $laenge);
+            }
+            $i += 1 + $laenge;
+        }
+        return $out;
+    }
+
+    /**
+     * Einordnung aus der Antwort auf GET /info (Gerät von Hand per Adresse, Suche erreicht es nicht).
+     * Bevorzugt der mitgelieferte Bonjour-Eintrag txtAirPlay — derselbe wie bei der Suche —, sonst die
+     * Einzelfelder model, deviceID, features und statusFlags.
+     */
+    public static function ausInfo(array $info): array
+    {
+        $roh = $info['txtAirPlay'] ?? null;
+        $txt = is_object($roh) && isset($roh->bytes) ? self::txt(self::txtBytes((string)$roh->bytes)) : [];
+        if (!isset($txt['model'])) {
+            $f = (int)($info['features'] ?? 0);
+            $txt += [
+                'model' => (string)($info['model'] ?? ''),
+                'deviceid' => (string)($info['deviceID'] ?? ''),
+                'features' => sprintf('0x%X,0x%X', $f & 0xFFFFFFFF, ($f >> 32) & 0xFFFFFFFF),
+                'flags' => sprintf('0x%X', (int)($info['statusFlags'] ?? 0)),
+            ];
+        }
+        return self::einordnen($txt) + ['name' => (string)($info['name'] ?? '')];
+    }
+
     /** „0xLOW,0xHIGH" → 64-Bit-Zahl. */
     public static function features(string $wert): int
     {

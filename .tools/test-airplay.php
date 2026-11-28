@@ -160,6 +160,13 @@ foreach ($faelle as $name => [$txt, $familie, $durchsage]) {
     $e = AirPlayGeraete::einordnen(AirPlayGeraete::txt($txt));
     pruefe($name, $e['familie'] === $familie && $e['durchsage'] === $durchsage, $e['familie'] . '/' . $e['durchsage'] . ($e['grund'] ? ' (' . $e['grund'] . ')' : ''));
 }
+// Gerät von Hand per Adresse: GET /info liefert den Bonjour-Eintrag als Rohbytes (live HomePod 1. Gen., 28.11.2026)
+$eintraege = ['acl=0', 'deviceid=66:5B:22:32:F9:EA', 'features=0x4A7FCA00,0x3C356BD0', 'flags=0x98404', 'model=AudioAccessory1,1', 'osvers=27.2.1'];
+$roh = implode('', array_map(fn ($e) => chr(strlen($e)) . $e, $eintraege));
+$e = AirPlayGeraete::ausInfo(['name' => 'HomePod Kueche', 'txtAirPlay' => new AirPlayBplistData($roh), 'model' => 'falsch']);
+pruefe('/info mit txtAirPlay: wie die Suche eingeordnet', $e['familie'] === 'homepod' && $e['durchsage'] === 'ja' && $e['deviceId'] === '66:5B:22:32:F9:EA' && $e['name'] === 'HomePod Kueche' && $e['os'] === '27.2.1');
+$e = AirPlayGeraete::ausInfo(['name' => 'X', 'model' => 'AudioAccessory5,1', 'deviceID' => '11:22:33:44:55:66', 'features' => 4338492358388599296, 'statusFlags' => 623620]);
+pruefe('/info ohne txtAirPlay: aus den Einzelfeldern', $e['familie'] === 'homepod' && $e['durchsage'] === 'ja' && $e['deviceId'] === '11:22:33:44:55:66');
 
 echo "Audio\n";
 function wav(int $rate, int $kanaele, int $bits, string $daten): string

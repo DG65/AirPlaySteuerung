@@ -5,7 +5,7 @@ ohne Docker, ohne Zusatzsoftware auf dem Symcon-Rechner.
 
 [English version](README.en.md)
 
-> **Status: Beta 0.11.6.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
+> **Status: Beta 0.12.0.** Durchsagen, Fortsetzen danach, Anzeige und Steuerung sind an HomePod
 > (1. Generation) und HomePod mini geprüft. Apple TV mit tvOS ist nach derselben Vorlage gebaut, aber
 > noch nicht an echter Hardware getestet. Bisher nur im Prüfstand, noch nicht im Alltag erprobt: Wecker, geplante
 > Ansagen, Nachtgrenze, Gruppen, Anwesenheit und die Push-Mitteilung von AirPlay-Klima. Die Online-Stimmen (Azure,
@@ -75,8 +75,9 @@ Thread-Border-Router für Matter braucht dieses Modul nicht.
 - Symcon ab 9.0
 - PHP-Erweiterungen `gmp` und `sodium` (bei aktuellen Symcon-Versionen enthalten; fehlt eine, zeigt
   die Instanz das im Formular und im Status)
-- Gerät und Symcon im selben Netzsegment (mDNS für die Suche); das Gerät muss von Symcon aus über
-  TCP-Port 7000 erreichbar sein, für den Ton öffnet Symcon während der Durchsage UDP-Ports
+- Das Gerät muss von Symcon aus über TCP-Port 7000 erreichbar sein; für den Ton öffnet Symcon während der Durchsage
+  UDP-Ports. Die Suche im Konfigurator (mDNS) reicht nur bis zum eigenen Netzsegment, Geräte in anderen VLANs werden
+  per IP-Adresse hinzugefügt (siehe Einrichtung).
 
 ## Einrichtung
 
@@ -84,6 +85,14 @@ Thread-Border-Router für Matter braucht dieses Modul nicht.
    Bereich **Beta** und wird nur mit genauem Namen gefunden.
 2. Instanz **AirPlay-Konfigurator** anlegen, Liste prüfen, beim gewünschten HomePod „Erstellen".
 3. Im **AirPlay-Gerät** „🔗 Verbindung testen (ohne Ton)" und danach „🔔 Gong abspielen".
+
+**HomePod in einem anderen VLAN** (oder hinter VPN, Symcon in Docker ohne Host-Netz): Die Suche findet ihn nicht,
+weil mDNS im eigenen Netzsegment bleibt. Im Konfigurator unter der Liste die IP-Adresse des HomePods eintragen und
+„➕ Hinzufügen" klicken. Der Konfigurator fragt das Gerät direkt und zeigt es danach wie ein gefundenes an, mit
+„Erstellen". Eine feste Adresse (DHCP-Reservierung) ist sinnvoll. Die Firewall zwischen den VLANs muss Verkehr
+zwischen Symcon und dem HomePod in beide Richtungen erlauben: TCP 7000 und wechselnde TCP-/UDP-Ports, die der HomePod
+je Sitzung zuweist; während einer Durchsage schickt der HomePod außerdem Zeitanfragen per UDP an Symcon. Am
+einfachsten ist eine Regel, die zwischen der Symcon-IP und den HomePod-IPs allen Verkehr erlaubt.
 
 ## Verwendung in Skripten
 

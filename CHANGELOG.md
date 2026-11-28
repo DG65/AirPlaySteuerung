@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.11.6 (unveröffentlicht)
+## 0.12.0 (unveröffentlicht)
+
+- Neu im **Konfigurator: Geräte per IP-Adresse hinzufügen**, für HomePods, die die Suche nicht erreicht (anderes
+  VLAN, VPN, Symcon in Docker ohne Host-Netz; Forum-Thread 145020 #7). Der Konfigurator fragt das Gerät direkt
+  (GET /info, ohne Kopplung und ohne Ton), ordnet es wie ein gefundenes ein und bietet „Erstellen" an. Die Adressen
+  werden gemerkt und bei jeder Suche wieder gefragt; nicht erreichbare stehen mit „nicht erreichbar" in der Liste.
+- README: Abschnitt zu HomePods in anderen VLANs mit den nötigen Firewall-Freigaben.
+
+## 0.11.6 (25.11.2026, Store-Beta)
 
 - Das Cover-Medium eines AirPlay-Geräts bekommt beim Anlegen ein unsichtbares Platzhalterbild. Bisher zeigte die
   Konsole „Datei nicht vorhanden", bis der HomePod zum ersten Mal etwas mit Cover abspielte (Forum-Thread 145020 #4).

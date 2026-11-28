@@ -32,11 +32,11 @@ final class AirPlaySitzung
     private $log;
 
     /** @param callable|null $log fn(string $text): void für Debug-Ausgaben */
-    public function __construct(private string $host, ?callable $log = null, int $port = self::PORT)
+    public function __construct(private string $host, ?callable $log = null, int $port = self::PORT, float $zeitlimit = 5.0)
     {
         $this->log = $log ?? static function (string $text): void {
         };
-        $this->rtsp = new AirPlayRtsp(new AirPlayVerbindung($host, $port));
+        $this->rtsp = new AirPlayRtsp(new AirPlayVerbindung($host, $port, $zeitlimit));
     }
 
     /** Geräteinfo per GET /info (vor oder nach der Kopplung). */
